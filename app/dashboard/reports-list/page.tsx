@@ -58,7 +58,7 @@ export const columns: ColumnDef<Report>[] = [
 					size="sm"
 					variant="outline"
 					onClick={() => {
-						window.location.href = `/reports/${report.id}`;
+						window.location.href = `/dashboard/reports-list/${report.id}`;
 					}}
 				>
 					View
@@ -72,7 +72,6 @@ export default function ReportsTable() {
 	const [data, setData] = useState<Report[]>([]);
 
 	useEffect(() => {
-		// Real-time listener for reports
 		const q = query(
 			collection(db, "reports"),
 			orderBy("submittedAt", "desc")

@@ -80,6 +80,29 @@ export default function Layout({ children }: { children: React.ReactNode }) {
 				</>
 			);
 
+		if (pathname.startsWith("/dashboard/reports-list/")) {
+			const id = pathname.split("/").pop();
+			return (
+				<>
+					<BreadcrumbItem>
+						<BreadcrumbLink href="/dashboard">
+							Dashboard
+						</BreadcrumbLink>
+					</BreadcrumbItem>
+					<BreadcrumbSeparator />
+					<BreadcrumbItem>
+						<BreadcrumbLink href="/dashboard/reports-list">
+							Report List
+						</BreadcrumbLink>
+					</BreadcrumbItem>
+					<BreadcrumbSeparator />
+					<BreadcrumbItem>
+						<BreadcrumbPage>{id}</BreadcrumbPage>
+					</BreadcrumbItem>
+				</>
+			);
+		}
+
 		return (
 			<>
 				<BreadcrumbItem>
@@ -93,17 +116,22 @@ export default function Layout({ children }: { children: React.ReactNode }) {
 		<SidebarProvider>
 			<AppSidebar />
 			<SidebarInset>
-				<header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
-					<SidebarTrigger className="-ml-1" />
-					<Separator
-						orientation="vertical"
-						className="mr-2 data-[orientation=vertical]:h-4"
-					/>
-					<Breadcrumb>
-						<BreadcrumbList>{breadcrumbItems()}</BreadcrumbList>
-					</Breadcrumb>
-				</header>
-				{children}
+				<div className="flex flex-col h-screen">
+					<header className="sticky top-0 z-10 flex h-16 items-center gap-2 border-b bg-background px-4">
+						<SidebarTrigger className="-ml-1" />
+						<Separator
+							orientation="vertical"
+							className="mr-2 data-[orientation=vertical]:h-4"
+						/>
+						<Breadcrumb>
+							<BreadcrumbList>{breadcrumbItems()}</BreadcrumbList>
+						</Breadcrumb>
+					</header>
+
+					<main className="flex-1 overflow-y-auto p-4">
+						{children}
+					</main>
+				</div>
 			</SidebarInset>
 		</SidebarProvider>
 	);
