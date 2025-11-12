@@ -1,65 +1,53 @@
-"use client"
-
-import { MoreHorizontal, type LucideIcon } from "lucide-react"
+"use client";
 
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import {
-  SidebarGroup,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-  useSidebar,
-} from "@/components/ui/sidebar"
+	SidebarGroup,
+	SidebarMenu,
+	SidebarMenuButton,
+	SidebarMenuItem,
+} from "@/components/ui/sidebar";
+import { ICONS } from "@/components/icon";
 
 export function NavMain({
-  items,
+	items,
 }: {
-  items: {
-    title: string
-    url: string
-    icon?: LucideIcon
-    isActive?: boolean
-    items?: {
-      title: string
-      url: string
-    }[]
-  }[]
+	items: {
+		title: string;
+		url: string;
+		icon?: keyof typeof ICONS;
+		isActive?: boolean;
+	}[];
 }) {
-  const { isMobile } = useSidebar()
+	return (
+		<SidebarGroup>
+			<SidebarMenu>
+				{items.map((item) => {
+					const IconComponent = item.icon ? ICONS[item.icon] : null;
 
-  return (
-    <SidebarGroup>
-      <SidebarMenu>
-        {items.map((item) => (
-          <DropdownMenu key={item.title}>
-            <SidebarMenuItem>
-              <DropdownMenuTrigger asChild>
-                <SidebarMenuButton className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground">
-                  {item.title} <MoreHorizontal className="ml-auto" />
-                </SidebarMenuButton>
-              </DropdownMenuTrigger>
-              {item.items?.length ? (
-                <DropdownMenuContent
-                  side={isMobile ? "bottom" : "right"}
-                  align={isMobile ? "end" : "start"}
-                  className="min-w-56 rounded-lg"
-                >
-                  {item.items.map((item) => (
-                    <DropdownMenuItem asChild key={item.title}>
-                      <a href={item.url}>{item.title}</a>
-                    </DropdownMenuItem>
-                  ))}
-                </DropdownMenuContent>
-              ) : null}
-            </SidebarMenuItem>
-          </DropdownMenu>
-        ))}
-      </SidebarMenu>
-    </SidebarGroup>
-  )
+					return (
+						<SidebarMenuItem key={item.title}>
+							<SidebarMenuButton
+								asChild
+								className={
+									item.isActive
+										? "bg-sidebar-accent text-sidebar-accent-foreground"
+										: ""
+								}
+							>
+								<a
+									href={item.url}
+									className="flex items-center gap-2"
+								>
+									{IconComponent && (
+										<IconComponent className="size-4" />
+									)}
+									{item.title}
+								</a>
+							</SidebarMenuButton>
+						</SidebarMenuItem>
+					);
+				})}
+			</SidebarMenu>
+		</SidebarGroup>
+	);
 }
