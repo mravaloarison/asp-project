@@ -127,8 +127,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
 					</header>
 
 					<main className="flex-1 overflow-y-auto p-4">
-						if (loading) {<p>Loading...</p>} else if (user){" "}
-						{<>{children}</>}
+						{loading ? null : children}
 					</main>
 				</div>
 			</SidebarInset>
