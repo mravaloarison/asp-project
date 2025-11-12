@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { GalleryVerticalEnd } from "lucide-react";
+import { GalleryVerticalEnd, LogOut } from "lucide-react";
 import { getAuth, signOut } from "firebase/auth";
 
 import { NavMain } from "@/components/nav-main";
@@ -69,6 +69,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 							}
 						}}
 					>
+						<LogOut />
 						Log out
 					</Button>
 				</div>

@@ -25,6 +25,7 @@ import Maps from "@/components/maps";
 import { DialogClose } from "@radix-ui/react-dialog";
 import { db } from "@/app/firebase";
 import { addDoc, collection, serverTimestamp } from "firebase/firestore";
+import { toast } from "sonner";
 
 export default function NewForm() {
 	const [location, setLocation] = useState<{
@@ -33,15 +34,28 @@ export default function NewForm() {
 	} | null>(null);
 	const [dropPin, setDropPin] = useState(false);
 	const [isSubmitting, setIsSubmitting] = useState(false);
+	const [userName, setUserName] = useState("");
+	const [description, setDescription] = useState("");
 	const AnyMaps = Maps as any;
 
 	const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
 		e.preventDefault();
 		setIsSubmitting(true);
 
-		const formData = new FormData(e.currentTarget);
-		const name = formData.get("reporterName") as string;
-		const description = formData.get("description") as string;
+		const name = userName.trim();
+		const desc = description.trim();
+
+		if (!name) {
+			toast.error("Please enter your name.");
+			setIsSubmitting(false);
+			return;
+		}
+
+		if (!desc) {
+			toast.error("Please enter a description.");
+			setIsSubmitting(false);
+			return;
+		}
 
 		const report = {
 			name,
@@ -54,11 +68,14 @@ export default function NewForm() {
 
 		try {
 			await addDoc(collection(db, "reports"), report);
-			e.currentTarget.reset();
-			setLocation(null);
+			toast.success("Report submitted successfully!");
 		} catch (error) {
 			console.error("Error submitting report:", error);
+			toast.error("Failed to submit report.");
 		} finally {
+			setLocation(null);
+			setUserName("");
+			setDescription("");
 			setIsSubmitting(false);
 		}
 	};
@@ -78,8 +95,10 @@ export default function NewForm() {
 								Reporter's name
 							</FieldLabel>
 							<Input
-								id="reporterName"
 								name="reporterName"
+								value={userName}
+								onChange={(e) => setUserName(e.target.value)}
+								type="text"
 								placeholder="Rakotonarivo"
 								required
 							/>
@@ -166,7 +185,8 @@ export default function NewForm() {
 								Description
 							</FieldLabel>
 							<Textarea
-								id="description"
+								value={description}
+								onChange={(e) => setDescription(e.target.value)}
 								name="description"
 								placeholder="Add any additional description"
 								className="resize-none"
