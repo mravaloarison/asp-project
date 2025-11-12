@@ -1,53 +1,92 @@
+"use client";
+
 import {
 	APIProvider,
 	Map,
 	MapCameraChangedEvent,
+	Marker,
+	AdvancedMarker,
 } from "@vis.gl/react-google-maps";
+import { useState, useEffect } from "react";
+import { BluePin } from "./maps-utils";
 
 const API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "";
+const MAP_ID = process.env.NEXT_PUBLIC_GOOGLE_MAPS_ID || "";
 
-const Maps = () => {
+interface MapsProps {
+	defaultLocation: { lat: number; lng: number } | null;
+	callingBack: (coords: { lat: number; lng: number }) => void;
+	dropPin: boolean;
+}
+
+const Maps = ({ defaultLocation, callingBack, dropPin }: MapsProps) => {
+	const [userLocation, setUserLocation] = useState<{
+		lat: number;
+		lng: number;
+	} | null>(null);
+	const [dropLocation, setDropLocation] = useState<{
+		lat: number;
+		lng: number;
+	} | null>(null);
+
+	useEffect(() => {
+		if (navigator.geolocation) {
+			navigator.geolocation.getCurrentPosition(
+				(position) => {
+					const coords = {
+						lat: position.coords.latitude,
+						lng: position.coords.longitude,
+					};
+
+					setUserLocation(coords);
+					setDropLocation(coords);
+				},
+				(error) => {
+					console.error("Error obtaining location:", error);
+				}
+			);
+		} else {
+			console.error("Geolocation is not supported by this browser.");
+		}
+	}, []);
+
 	function handleCameraChange(ev: MapCameraChangedEvent) {
-		console.log(
-			"camera changed:",
-			ev.detail.center,
-			"zoom:",
-			ev.detail.zoom
-		);
+		const newCenter = ev.detail.center;
+		if (dropPin) {
+			setDropLocation(newCenter);
+			callingBack(newCenter);
+		}
 	}
-
-	const cleanMapStyles = [
-		{ featureType: "poi", stylers: [{ visibility: "off" }] },
-		{ featureType: "transit", stylers: [{ visibility: "off" }] },
-		{
-			featureType: "road",
-			elementType: "labels.icon",
-			stylers: [{ visibility: "off" }],
-		},
-		{
-			featureType: "administrative",
-			elementType: "labels",
-			stylers: [{ visibility: "off" }],
-		},
-		{ featureType: "poi.business", stylers: [{ visibility: "off" }] },
-		{ featureType: "poi.park", stylers: [{ visibility: "off" }] },
-		{ featureType: "poi.medical", stylers: [{ visibility: "off" }] },
-		{ featureType: "poi.school", stylers: [{ visibility: "off" }] },
-		{ featureType: "poi.sports_complex", stylers: [{ visibility: "off" }] },
-	];
 
 	return (
 		<APIProvider
 			apiKey={API_KEY}
 			onLoad={() => console.log("Maps API has loaded.")}
 		>
-			<Map
-				defaultZoom={6}
-				defaultCenter={{ lat: -18.8792, lng: 47.5079 }}
-				disableDefaultUI
-				styles={cleanMapStyles}
-				onCameraChanged={handleCameraChange}
-			></Map>
+			{userLocation ? (
+				<Map
+					mapId={MAP_ID}
+					defaultCenter={userLocation}
+					defaultZoom={15}
+					disableDefaultUI
+					onCameraChanged={handleCameraChange}
+				>
+					{defaultLocation ? (
+						<Marker position={defaultLocation} />
+					) : (
+						dropPin &&
+						dropLocation && <Marker position={dropLocation} />
+					)}
+
+					{userLocation && (
+						<AdvancedMarker position={userLocation}>
+							{BluePin()}
+						</AdvancedMarker>
+					)}
+				</Map>
+			) : (
+				<p>Loading map...</p>
+			)}
 		</APIProvider>
 	);
 };
