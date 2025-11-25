@@ -1,36 +1,35 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
-import { LogIn, PanelsTopLeft } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { useRouter, usePathname } from "next/navigation";
+import { getAuth, onAuthStateChanged } from "firebase/auth";
+import { app } from "@/app/firebase";
 
-export default function Page() {
+const auth = getAuth(app);
+
+export default function AuthRedirect({
+	children,
+}: {
+	children: React.ReactNode;
+}) {
 	const router = useRouter();
+	const pathname = usePathname();
+	const [loading, setLoading] = useState(true);
 
-	return (
-		<main className="flex flex-col w-full max-w-2xl mx-auto items-center justify-center min-h-screen text-center">
-			<h1 className="text-xl md:text-2xl font-bold mb-6">
-				Welcome to Aspinall Reports
-			</h1>
+	useEffect(() => {
+		const unsubscribe = onAuthStateChanged(auth, (user) => {
+			if (!user && pathname !== "/login") {
+				router.replace("/login");
+			} else if (user && pathname === "/login") {
+				router.replace("/dashboard");
+			}
+			setLoading(false);
+		});
 
-			<p className="text-lg md:text-lg text-gray-700 mb-10 max-w-xl">
-				This app helps you submit, track, and review your reports with
-				location data.
-			</p>
+		return () => unsubscribe();
+	}, [router, pathname]);
 
-			<div className="flex flex-col gap-4 w-full max-w-xs">
-				<Button onClick={() => router.push("/login")}>
-					<LogIn />
-					Login
-				</Button>
-				<Button
-					variant="outline"
-					onClick={() => router.push("/dashboard")}
-				>
-					<PanelsTopLeft />
-					Dashboard
-				</Button>
-			</div>
-		</main>
-	);
+	if (loading) return null;
+
+	return <>{children}</>;
 }
