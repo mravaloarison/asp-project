@@ -1,35 +1,34 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter, usePathname } from "next/navigation";
-import { getAuth, onAuthStateChanged } from "firebase/auth";
-import { app } from "@/app/firebase";
+import { useRouter } from "next/navigation";
+import { onAuthStateChanged } from "firebase/auth";
+import { auth } from "../app/firebase";
 
-const auth = getAuth(app);
-
-export default function AuthRedirect({
-	children,
-}: {
-	children: React.ReactNode;
-}) {
+export default function RootPage() {
 	const router = useRouter();
-	const pathname = usePathname();
-	const [loading, setLoading] = useState(true);
+	const [isLoading, setIsLoading] = useState(true);
 
 	useEffect(() => {
 		const unsubscribe = onAuthStateChanged(auth, (user) => {
-			if (!user && pathname !== "/login") {
-				router.replace("/login");
-			} else if (user && pathname === "/login") {
+			if (user) {
 				router.replace("/dashboard");
+			} else {
+				router.replace("/signin");
 			}
-			setLoading(false);
+			setIsLoading(false);
 		});
 
 		return () => unsubscribe();
-	}, [router, pathname]);
+	}, [router]);
 
-	if (loading) return null;
+	if (isLoading) {
+		return (
+			<div className="flex items-center justify-center min-h-screen text-slate-500 dark:text-slate-400">
+				Checking session status...
+			</div>
+		);
+	}
 
-	return <>{children}</>;
+	return null;
 }

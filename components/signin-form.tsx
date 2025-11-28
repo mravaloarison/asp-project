@@ -2,9 +2,9 @@
 
 import EmailInput from "@/components/email-input";
 import PasswordInput from "@/components/password-input";
-import { Avatar, Button, Flex, Link, Progress, Text } from "@radix-ui/themes";
+import { Button, Flex, Link, Text } from "@radix-ui/themes";
 
-interface SignUpFormContentProps {
+interface SignInFormContentProps {
 	email: string;
 	setEmail: (email: string) => void;
 	password: string;
@@ -12,24 +12,16 @@ interface SignUpFormContentProps {
 	// onSubmit: () => void;
 }
 
-export default function SignUpFormContent({
+export default function SignInFormContent({
 	email,
 	setEmail,
 	password,
 	setPassword,
-}: SignUpFormContentProps) {
+}: SignInFormContentProps) {
 	return (
 		<Flex gap="4" direction="column">
-			<Flex gap="3" justify="center" align="center">
-				<Avatar variant="solid" size="3" fallback="1" />
-				<Text>Credential</Text>
-				<Progress value={100} />
-				<Avatar size="3" fallback="2" />
-				<Text>Personal Info</Text>
-			</Flex>
-
 			<Text size="4" weight="bold" align="center" as="div">
-				Personal Info
+				Sign In
 			</Text>
 
 			<EmailInput
@@ -47,17 +39,10 @@ export default function SignUpFormContent({
 				size="3"
 			/>
 
-			<PasswordInput
-				value={password}
-				onChange={setPassword}
-				placeholder="Confirm Password"
-				size="3"
-			/>
-
-			<Button size="3">Next</Button>
+			<Button size="3">Sign In</Button>
 
 			<Text align="center" as="div">
-				Don't have an account yet? <Link href="/signin">Sign In</Link>
+				Don't have an account yet? <Link href="/signup">Sign Up</Link>
 			</Text>
 		</Flex>
 	);

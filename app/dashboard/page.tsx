@@ -1,31 +1,46 @@
 "use client";
 
+import { signOut, User, onAuthStateChanged } from "firebase/auth";
+import { auth } from "../firebase";
+import { Button } from "@radix-ui/themes";
 import { useEffect, useState } from "react";
-import { getAuth, onAuthStateChanged } from "firebase/auth";
 import { useRouter } from "next/navigation";
-import { app } from "@/app/firebase";
 
-export default function Dashboard() {
-	const auth = getAuth(app);
+export default function Page() {
+	const [user, setUser] = useState<User | null>(auth.currentUser);
 	const router = useRouter();
-	const [loading, setLoading] = useState(true);
-	const [user, setUser] = useState<any>(null);
+
+	const logout = async () => {
+		try {
+			await signOut(auth);
+			router.push("/signin");
+		} catch (error) {
+			console.error("Logout failed:", error);
+		}
+	};
 
 	useEffect(() => {
-		const unsubscribe = onAuthStateChanged(auth, (user) => {
-			if (!user) router.replace("/login");
-			else setUser(user);
-			setLoading(false);
+		const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+			setUser(currentUser);
+			if (!currentUser) {
+				router.push("/signin");
+			}
 		});
-
 		return () => unsubscribe();
-	}, [auth, router]);
+	}, []);
 
-	if (loading) return <p>Loading...</p>;
+	const userName = user?.displayName || user?.email?.split("@")[0] || "There";
 
 	return (
-		<div className="w-full max-w-3xl mx-auto p-20 flex justify-center">
-			Welcome, {user?.email}!
+		<div className="p-8">
+			<div className="text-2xl font-bold mb-4">Hello, {userName}!</div>
+			{user ? (
+				<Button variant="classic" onClick={logout}>
+					Logout
+				</Button>
+			) : (
+				<p>You are signed out.</p>
+			)}
 		</div>
 	);
 }
