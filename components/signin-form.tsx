@@ -9,7 +9,8 @@ interface SignInFormContentProps {
 	setEmail: (email: string) => void;
 	password: string;
 	setPassword: (password: string) => void;
-	// onSubmit: () => void;
+	onSignIn: () => void;
+	loading: boolean;
 }
 
 export default function SignInFormContent({
@@ -17,6 +18,8 @@ export default function SignInFormContent({
 	setEmail,
 	password,
 	setPassword,
+	onSignIn,
+	loading,
 }: SignInFormContentProps) {
 	return (
 		<Flex gap="4" direction="column">
@@ -39,7 +42,9 @@ export default function SignInFormContent({
 				size="3"
 			/>
 
-			<Button size="3">Sign In</Button>
+			<Button size="3" onClick={onSignIn} loading={loading}>
+				Sign In
+			</Button>
 
 			<Text align="center" as="div">
 				Don't have an account yet? <Link href="/signup">Sign Up</Link>
