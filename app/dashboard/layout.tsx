@@ -54,6 +54,7 @@ export default function DashboardLayout({
 				minHeight="0"
 				style={{
 					overflowY: "scroll",
+					scrollbarWidth: "thin",
 					minWidth: 0,
 				}}
 			>
@@ -80,6 +81,7 @@ export default function DashboardLayout({
 				minHeight="0"
 				style={{
 					overflowY: "scroll",
+					scrollbarWidth: "thin",
 					minWidth: 0,
 				}}
 			>

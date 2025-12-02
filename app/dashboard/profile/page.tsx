@@ -2,31 +2,19 @@
 
 import {
 	Container,
-	Flex,
-	Heading,
 	Card,
-	Text,
-	TextField,
-	Button,
+	Flex,
 	Separator,
 	Box,
+	Text,
+	Button,
 } from "@radix-ui/themes";
-import {
-	PersonIcon,
-	PlusIcon,
-	Pencil2Icon,
-	TrashIcon,
-} from "@radix-ui/react-icons";
 import { useState } from "react";
+import ProfileDetails from "./components/profile-details";
+import LocationList from "./components/location-list";
+import { Location } from "./types";
 
-interface Location {
-	id: number;
-	name: string;
-	region: string;
-	coords: string;
-}
-
-const mockLocations: Location[] = [
+const mockLocationsData: Location[] = [
 	{
 		id: 1,
 		name: "New York Office",
@@ -42,43 +30,83 @@ const mockLocations: Location[] = [
 ];
 
 export default function ProfilePage() {
-	const [name, setName] = useState("John Doe");
-	const [company, setCompany] = useState("Acme Corp");
-	const [oldPassword, setOldPassword] = useState("");
-	const [newPassword, setNewPassword] = useState("");
-	const [confirmNewPassword, setConfirmNewPassword] = useState("");
-
-	const [loading, setLoading] = useState(false);
+	const [locations, setLocations] = useState<Location[]>(mockLocationsData);
 	const [statusMessage, setStatusMessage] = useState<string | null>(null);
 
-	const handleUpdateProfile = () => {
-		setStatusMessage("Profile updated successfully!");
+	const handleProfileSave = (name: string, company: string) => {
+		console.log("Saving to firebase:", { name, company });
+		showStatus("Profile updated successfully!");
+	};
+
+	const handleDeleteAccount = () => {
+		console.log("Delete account triggered");
+	};
+
+	const handleAddLocationClick = () => {
+		console.log("Navigating to Add View...");
+	};
+
+	const handleUpdateLocation = (updatedLoc: Location) => {
+		setLocations((prev) =>
+			prev.map((loc) => (loc.id === updatedLoc.id ? updatedLoc : loc))
+		);
+		showStatus("Location updated!");
+	};
+
+	const handleDeleteLocation = (id: number) => {
+		setLocations((prev) => prev.filter((loc) => loc.id !== id));
+		showStatus("Location deleted.");
+	};
+
+	const showStatus = (msg: string) => {
+		setStatusMessage(msg);
 		setTimeout(() => setStatusMessage(null), 3000);
 	};
 
-	const handleChangePassword = () => {
-		if (newPassword !== confirmNewPassword) {
-			setStatusMessage("Error: New passwords do not match.");
-			return;
-		}
-		if (!oldPassword || !newPassword) {
-			setStatusMessage("Error: Please fill out all password fields.");
-			return;
-		}
+	const content = () => {
+		return (
+			<Flex
+				direction="column"
+				gap="3"
+				style={{ flexGrow: 1, minHeight: 0 }}
+			>
+				{statusMessage && (
+					<Box>
+						<Text weight="medium" color="green">
+							{statusMessage}
+						</Text>
+					</Box>
+				)}
 
-		setStatusMessage("Password updated successfully!");
-		setOldPassword("");
-		setNewPassword("");
-		setConfirmNewPassword("");
-		setTimeout(() => setStatusMessage(null), 3000);
-	};
+				<ProfileDetails
+					initialName="John Doe"
+					initialCompany="Acme Corp"
+					onSave={handleProfileSave}
+				/>
 
-	const handleEditLocation = (locationId: number) => {
-		console.log(`Editing location ID: ${locationId}`);
-	};
+				<Separator size="4" style={{ flexShrink: 0 }} />
 
-	const handleDeleteLocation = (locationId: number) => {
-		console.log(`Deleting location ID: ${locationId}`);
+				<LocationList
+					locations={locations}
+					onAddLocation={handleAddLocationClick}
+					onUpdateLocation={handleUpdateLocation}
+					onDeleteLocation={handleDeleteLocation}
+				/>
+
+				<Separator size="4" style={{ flexShrink: 0 }} />
+
+				<Flex direction="column" gap="3" style={{ flexShrink: 0 }}>
+					<Button
+						size="3"
+						onClick={handleDeleteAccount}
+						variant="soft"
+						color="red"
+					>
+						Delete Account
+					</Button>
+				</Flex>
+			</Flex>
+		);
 	};
 
 	return (
@@ -101,157 +129,7 @@ export default function ProfilePage() {
 					flexDirection: "column",
 				}}
 			>
-				<Flex
-					direction="column"
-					gap="3"
-					style={{ flexGrow: 1, minHeight: 0 }}
-				>
-					{statusMessage && (
-						<Box>
-							<Text
-								weight="medium"
-								color={
-									statusMessage.startsWith("Error")
-										? "red"
-										: "green"
-								}
-							>
-								{statusMessage}
-							</Text>
-						</Box>
-					)}
-
-					<Flex direction="column" gap="3" style={{ flexShrink: 0 }}>
-						<Heading size="4">Personal Information</Heading>
-						<TextField.Root
-							size="3"
-							placeholder="Full Name"
-							value={name}
-							onChange={(e) => setName(e.target.value)}
-						>
-							<TextField.Slot>
-								<PersonIcon height="16" width="16" />
-							</TextField.Slot>
-						</TextField.Root>
-						<TextField.Root
-							size="3"
-							placeholder="Company Name"
-							value={company}
-							onChange={(e) => setCompany(e.target.value)}
-						>
-							<TextField.Slot>
-								<Pencil2Icon height="16" width="16" />
-							</TextField.Slot>
-						</TextField.Root>
-						<Button
-							size="3"
-							onClick={handleUpdateProfile}
-							disabled={loading}
-						>
-							{loading ? "Saving..." : "Save Profile Changes"}
-						</Button>
-					</Flex>
-
-					<Separator size="4" style={{ flexShrink: 0 }} />
-
-					<Flex
-						direction="column"
-						gap="3"
-						flexGrow="1"
-						minHeight="0"
-						overflowY="auto"
-					>
-						<Flex
-							justify="between"
-							align="center"
-							style={{ flexShrink: 0 }}
-						>
-							<Flex gap="2" align="center">
-								<Heading size="4">
-									Your Operating Locations (
-									{mockLocations.length})
-								</Heading>
-							</Flex>
-							<Button variant="outline" size="2">
-								<PlusIcon /> Add
-							</Button>
-						</Flex>
-
-						<Flex
-							direction="column"
-							gap="3"
-							flexGrow="1"
-							minHeight="0"
-							overflowY="auto"
-							maxHeight="350px"
-						>
-							{mockLocations.map((loc) => (
-								<Box
-									key={loc.id}
-									p="3"
-									style={{
-										border: "1px solid var(--gray-6)",
-										backgroundColor: "var(--gray-2)",
-										borderRadius: "var(--radius-3)",
-										flexShrink: 0,
-									}}
-								>
-									<Flex justify="between" align="start">
-										<Box>
-											<Text size="3" weight="medium">
-												{loc.name}
-											</Text>
-											<Flex align="center" gap="2" mt="1">
-												<Text size="2" color="gray">
-													{loc.coords}
-												</Text>
-											</Flex>
-										</Box>
-
-										{/* Action Buttons */}
-										<Flex direction="column" gap="3">
-											<Button
-												variant="ghost"
-												size="2"
-												onClick={() =>
-													handleEditLocation(loc.id)
-												}
-												title="Edit Location"
-											>
-												<Pencil2Icon />
-											</Button>
-											<Button
-												variant="ghost"
-												color="red"
-												size="2"
-												onClick={() =>
-													handleDeleteLocation(loc.id)
-												}
-												title="Delete Location"
-											>
-												<TrashIcon />
-											</Button>
-										</Flex>
-									</Flex>
-								</Box>
-							))}
-						</Flex>
-					</Flex>
-
-					<Separator size="4" style={{ flexShrink: 0 }} />
-
-					<Flex direction="column" gap="3" style={{ flexShrink: 0 }}>
-						<Button
-							size="3"
-							onClick={handleChangePassword}
-							disabled={loading}
-							variant="soft"
-							color="red"
-						>
-							Delete Account
-						</Button>
-					</Flex>
-				</Flex>
+				{content()}
 			</Card>
 		</Container>
 	);
