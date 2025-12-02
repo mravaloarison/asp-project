@@ -3,3 +3,13 @@
     margin: 0;
     padding: 0;
 }
+
+.user-card-hover-effect {
+    border: 1px solid transparent;
+}
+
+.user-card-hover-effect:hover {
+    border-color: var(--accent-9);
+    box-shadow: var(--shadow-2);
+    cursor: pointer;
+}

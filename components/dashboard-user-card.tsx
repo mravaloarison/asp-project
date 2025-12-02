@@ -22,9 +22,11 @@ export default function UserCard({
 }: UserCardProps) {
 	return (
 		<Card
+			className="user-card-hover-effect"
 			style={{
 				flexShrink: 0,
 				width: "100%",
+				transition: "border-color 0.01s ease",
 			}}
 		>
 			<Flex gap="3" align="start">

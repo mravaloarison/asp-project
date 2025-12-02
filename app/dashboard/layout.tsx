@@ -5,9 +5,10 @@ import { useRouter, usePathname } from "next/navigation";
 import { signOut, User, onAuthStateChanged } from "firebase/auth";
 import { auth } from "../firebase";
 import { Flex, Card, Grid } from "@radix-ui/themes";
-import UserCard from "@/components/user-card";
+import UserCard from "@/components/dashboard-user-card";
 import DashboardHeader from "@/components/dashboard-header";
 import DashboardListSectionHeader from "@/components/dashboard-list-header";
+import ZoneCard from "@/components/dashboard-zone-card";
 
 export default function DashboardLayout({
 	children,
@@ -18,6 +19,12 @@ export default function DashboardLayout({
 	const [currentSegment, setCurrentSegment] = useState<string>("users");
 	const router = useRouter();
 	const pathname = usePathname();
+
+	const [currentPath, setCurrentPath] = useState<string>(pathname);
+
+	useEffect(() => {
+		setCurrentPath(pathname);
+	}, [pathname]);
 
 	const logout = async () => {
 		try {
@@ -38,7 +45,7 @@ export default function DashboardLayout({
 		return () => unsubscribe();
 	}, [router]);
 
-	const listOfResults = () => {
+	const listOfUsers = () => {
 		return (
 			<Flex
 				gap="3"
@@ -64,6 +71,30 @@ export default function DashboardLayout({
 		);
 	};
 
+	const listOfZones = () => {
+		return (
+			<Flex
+				gap="3"
+				direction="column"
+				flexGrow="1"
+				minHeight="0"
+				style={{
+					overflowY: "scroll",
+					minWidth: 0,
+				}}
+			>
+				{[...Array(4)].map((_, i) => (
+					<ZoneCard
+						ZoneName={`Zone ${i + 1}`}
+						numberOfUsers={Math.floor(Math.random() * 100)}
+						numberOfLocations={Math.floor(Math.random() * 20)}
+						key={i}
+					/>
+				))}
+			</Flex>
+		);
+	};
+
 	const sidebarList = () => {
 		return (
 			<Card
@@ -82,7 +113,7 @@ export default function DashboardLayout({
 					setSearch={() => {}}
 					totalFound={12}
 				/>
-				{listOfResults()}
+				{currentSegment === "users" ? listOfUsers() : listOfZones()}
 			</Card>
 		);
 	};
@@ -95,7 +126,7 @@ export default function DashboardLayout({
 		);
 	};
 
-	const content = () => {
+	const dashBoardContent = () => {
 		return (
 			<Flex
 				direction="column"
@@ -130,8 +161,14 @@ export default function DashboardLayout({
 				background: "var(--gray-a2)",
 			}}
 		>
-			{user && <DashboardHeader user={user} logout={logout} />}
-			{content()}
+			{user && (
+				<DashboardHeader
+					user={user}
+					logout={logout}
+					pathname={currentPath}
+				/>
+			)}
+			{currentPath === "/dashboard" && dashBoardContent()}
 			{children}
 		</Flex>
 	);
