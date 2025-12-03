@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "../app/firebase";
+import page from "./signup/page";
+import layout from "./layout";
 
 export default function RootPage() {
 	const router = useRouter();
@@ -32,3 +34,4 @@ export default function RootPage() {
 
 	return null;
 }
+

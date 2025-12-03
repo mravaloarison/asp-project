@@ -29,7 +29,7 @@ export default function Page() {
 
 		try {
 			await signInWithEmailAndPassword(auth, email, password);
-			router.push("/dashboard");
+			router.push("/dashboard/user");
 		} catch (error: any) {
 			setErrorMsg(error.message);
 		} finally {
