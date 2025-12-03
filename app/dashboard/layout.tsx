@@ -40,7 +40,7 @@ export default function DashboardLayout({
 		</Grid>
 	);
 
-	const showDashboardView = pathname.startsWith("/dashboard");
+	const hideDashboard = pathname.endsWith("/profile");
 
 	if (!user) {
 		return null;
@@ -57,7 +57,9 @@ export default function DashboardLayout({
 		>
 			<DashboardHeader user={user} logout={logout} pathname={pathname} />
 
-			{showDashboardView ? (
+			{hideDashboard ? (
+				children
+			) : (
 				<Flex
 					direction="column"
 					p="3"
@@ -75,8 +77,6 @@ export default function DashboardLayout({
 						</Grid>
 					</Flex>
 				</Flex>
-			) : (
-				children
 			)}
 		</Flex>
 	);
