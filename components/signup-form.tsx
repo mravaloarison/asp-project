@@ -13,7 +13,15 @@ interface SignUpFormContentProps {
 	setEmail: (email: string) => void;
 	password: string;
 	setPassword: (password: string) => void;
-	// onSubmit: () => void;
+	confirmPassword: string;
+	setConfirmPassword: (password: string) => void;
+	name: string;
+	setName: (name: string) => void;
+	company: string;
+	setCompany: (company: string) => void;
+	onSignUp: () => Promise<void>;
+	onCompleteProfile: () => Promise<void>;
+	loading: boolean;
 }
 
 const slideVariants = {
@@ -38,14 +46,20 @@ export default function SignUpFormContent({
 	setEmail,
 	password,
 	setPassword,
+	confirmPassword,
+	setConfirmPassword,
+	name,
+	setName,
+	company,
+	setCompany,
+	onSignUp,
+	onCompleteProfile,
+	loading,
 }: SignUpFormContentProps) {
 	const [step, setStep] = useState(1);
 	const [direction, setDirection] = useState(0);
 
 	const isStepTwo = step === 2;
-
-	const [name, setName] = useState("");
-	const [company, setCompany] = useState("");
 
 	function handleNext() {
 		setDirection(1);
@@ -57,17 +71,20 @@ export default function SignUpFormContent({
 		setStep(1);
 	}
 
-	function actionCalled() {
+	async function actionCalled() {
 		if (step === 1) {
-			handleNext();
+			try {
+				await onSignUp();
+				handleNext();
+			} catch (error) {
+				console.error("Sign up failed, staying on step 1");
+			}
 		} else {
-			console.log("Final form submitted:", {
-				email,
-				password,
-				name,
-				company,
-			});
-			// onSubmit()
+			try {
+				await onCompleteProfile();
+			} catch (error) {
+				console.error("Profile save failed");
+			}
 		}
 	}
 
@@ -82,19 +99,21 @@ export default function SignUpFormContent({
 				onChange={setEmail}
 				placeholder="Your Email"
 				size="3"
-				disabled={false}
+				disabled={loading}
 			/>
 			<PasswordInput
 				value={password}
 				onChange={setPassword}
 				placeholder="Your Password"
 				size="3"
+				disabled={loading}
 			/>
 			<PasswordInput
-				value={password}
-				onChange={setPassword}
+				value={confirmPassword}
+				onChange={setConfirmPassword}
 				placeholder="Confirm Password"
 				size="3"
+				disabled={loading}
 			/>
 		</>
 	);
@@ -106,6 +125,7 @@ export default function SignUpFormContent({
 				placeholder="Full Name"
 				value={name}
 				onChange={(e) => setName(e.target.value)}
+				disabled={loading}
 			>
 				<TextField.Slot>
 					<PersonIcon />
@@ -116,6 +136,7 @@ export default function SignUpFormContent({
 				placeholder="Company Name"
 				value={company}
 				onChange={(e) => setCompany(e.target.value)}
+				disabled={loading}
 			>
 				<TextField.Slot>
 					<BackpackIcon />
@@ -186,11 +207,16 @@ export default function SignUpFormContent({
 
 			<Grid gap="3" columns={isStepTwo ? "2" : "1"}>
 				{isStepTwo && (
-					<Button variant="soft" onClick={handleBack} size="3">
+					<Button
+						variant="soft"
+						onClick={handleBack}
+						size="3"
+						disabled={loading}
+					>
 						Back
 					</Button>
 				)}
-				<Button size="3" onClick={actionCalled}>
+				<Button size="3" onClick={actionCalled} loading={loading}>
 					{buttonText}
 				</Button>
 			</Grid>

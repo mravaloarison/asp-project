@@ -120,7 +120,6 @@ export default function DashboardSidebar() {
 				}}
 			>
 				<DashboardHeaderContent
-					viewState={VIEW_STATE}
 					currentSegment={currentSegment}
 					handleSegmentChange={handleSegmentChange}
 				/>

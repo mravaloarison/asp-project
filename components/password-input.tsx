@@ -13,6 +13,7 @@ interface PasswordInputProps {
 	onChange: (value: string) => void;
 	placeholder?: string;
 	size?: "1" | "2" | "3";
+	disabled?: boolean;
 }
 
 const PasswordInput: React.FC<PasswordInputProps> = ({
@@ -20,6 +21,7 @@ const PasswordInput: React.FC<PasswordInputProps> = ({
 	onChange,
 	placeholder = "Password",
 	size = "3",
+	disabled = false,
 }) => {
 	const [showPassword, setShowPassword] = useState(false);
 
@@ -30,6 +32,7 @@ const PasswordInput: React.FC<PasswordInputProps> = ({
 			placeholder={placeholder}
 			value={value}
 			onChange={(e) => onChange(e.target.value)}
+			disabled={disabled}
 		>
 			<TextField.Slot>
 				<LockClosedIcon />
