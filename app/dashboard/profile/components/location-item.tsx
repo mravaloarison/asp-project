@@ -1,14 +1,22 @@
 "use client";
 
-import { Box, Flex, Text, Button, Dialog, TextField } from "@radix-ui/themes";
+import {
+	Box,
+	Flex,
+	Text,
+	Button,
+	Dialog,
+	TextField,
+	TextArea,
+} from "@radix-ui/themes";
 import { Pencil2Icon, TrashIcon } from "@radix-ui/react-icons";
 import { useState } from "react";
-import { Location } from "../types";
+import { LocationDocument } from "@/app/firestore";
 
 interface LocationItemProps {
-	location: Location;
-	onUpdate: (updatedLoc: Location) => void;
-	onDelete: (id: number) => void;
+	location: LocationDocument;
+	onUpdate: (updatedLoc: LocationDocument) => void;
+	onDelete: (id: string) => void;
 }
 
 export default function LocationItem({
@@ -16,21 +24,24 @@ export default function LocationItem({
 	onUpdate,
 	onDelete,
 }: LocationItemProps) {
-	// Local state for the Edit Form
 	const [editName, setEditName] = useState(location.name);
-	const [editCoords, setEditCoords] = useState(location.coords);
-	const [editRegion, setEditRegion] = useState(location.region);
+	const [editDescription, setEditDescription] = useState(
+		location.description || ""
+	);
 	const [openEdit, setOpenEdit] = useState(false);
 
 	const handleSaveEdit = () => {
 		onUpdate({
 			...location,
 			name: editName,
-			region: editRegion,
-			coords: editCoords,
+			description: editDescription,
 		});
 		setOpenEdit(false);
 	};
+
+	const coordsString = `${location.coordinates.lat.toFixed(
+		4
+	)}, ${location.coordinates.lng.toFixed(4)}`;
 
 	return (
 		<Box
@@ -47,15 +58,19 @@ export default function LocationItem({
 					<Text size="3" weight="medium">
 						{location.name}
 					</Text>
-					<Flex align="center" gap="2" mt="1">
+					<Flex direction="column" gap="1" mt="1">
 						<Text size="2" color="gray">
-							{location.coords} • {location.region}
+							{coordsString}
 						</Text>
+						{location.description && (
+							<Text size="2" style={{ fontStyle: "italic" }}>
+								{location.description}
+							</Text>
+						)}
 					</Flex>
 				</Box>
 
 				<Flex direction="column" gap="2">
-					{/* --- EDIT DIALOG --- */}
 					<Dialog.Root open={openEdit} onOpenChange={setOpenEdit}>
 						<Dialog.Trigger>
 							<Button
@@ -97,29 +112,14 @@ export default function LocationItem({
 										mb="1"
 										weight="bold"
 									>
-										Region
+										Description
 									</Text>
-									<TextField.Root
-										value={editRegion}
+									<TextArea
+										value={editDescription}
 										onChange={(e) =>
-											setEditRegion(e.target.value)
+											setEditDescription(e.target.value)
 										}
-									/>
-								</label>
-								<label>
-									<Text
-										as="div"
-										size="2"
-										mb="1"
-										weight="bold"
-									>
-										Coordinates
-									</Text>
-									<TextField.Root
-										value={editCoords}
-										onChange={(e) =>
-											setEditCoords(e.target.value)
-										}
+										style={{ height: 80 }}
 									/>
 								</label>
 							</Flex>
@@ -137,7 +137,6 @@ export default function LocationItem({
 						</Dialog.Content>
 					</Dialog.Root>
 
-					{/* --- DELETE DIALOG --- */}
 					<Dialog.Root>
 						<Dialog.Trigger>
 							<Button

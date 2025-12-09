@@ -43,7 +43,7 @@ export default function ProfilePage() {
 						setUserData(docSnap.data() as UserDocument);
 					}
 				} catch (error) {
-					console.error("Error fetching user profile:", error);
+					console.error(error);
 				}
 			} else {
 				router.push("/signin");
@@ -72,7 +72,7 @@ export default function ProfilePage() {
 			);
 			showStatus("Profile updated successfully!");
 		} catch (error) {
-			console.error("Error updating profile:", error);
+			console.error(error);
 			showStatus("Failed to update profile.");
 		}
 	};
@@ -86,7 +86,7 @@ export default function ProfilePage() {
 				await user.delete();
 				router.push("/signup");
 			} catch (error) {
-				console.error("Error deleting account:", error);
+				console.error(error);
 				showStatus("Error deleting account. You may need to re-login.");
 			}
 		}
@@ -135,11 +135,7 @@ export default function ProfilePage() {
 
 					<Separator size="4" style={{ flexShrink: 0 }} />
 
-					{userData && (
-						<LocationList
-							assignedZoneIds={userData.assignedZoneIds || []}
-						/>
-					)}
+					{user && <LocationList userId={user.uid} />}
 
 					<Separator size="4" style={{ flexShrink: 0 }} />
 

@@ -12,44 +12,28 @@ import {
 	doc,
 	updateDoc,
 	getFirestore,
-	documentId,
 } from "firebase/firestore";
 import LocationItem from "./location-item";
-import { LocationDocument, ZoneDocument } from "@/app/firestore";
+import { LocationDocument } from "@/app/firestore";
 import AddLocationDialog from "./location-dialog";
 
 interface LocationListProps {
-	assignedZoneIds: string[];
+	userId: string;
 }
 
-export default function LocationList({ assignedZoneIds }: LocationListProps) {
+export default function LocationList({ userId }: LocationListProps) {
 	const db = getFirestore();
 	const [locations, setLocations] = useState<LocationDocument[]>([]);
-	const [zones, setZones] = useState<ZoneDocument[]>([]);
 	const [loading, setLoading] = useState(false);
 	const [isAddOpen, setIsAddOpen] = useState(false);
 
 	useEffect(() => {
 		const fetchData = async () => {
-			if (assignedZoneIds.length === 0) return;
+			if (!userId) return;
 			setLoading(true);
 			try {
-				const zonesRef = collection(db, "zones");
-				const zonesQuery = query(
-					zonesRef,
-					where(documentId(), "in", assignedZoneIds)
-				);
-				const zoneSnaps = await getDocs(zonesQuery);
-				const loadedZones = zoneSnaps.docs.map(
-					(doc) => ({ id: doc.id, ...doc.data() } as ZoneDocument)
-				);
-				setZones(loadedZones);
-
 				const locsRef = collection(db, "locations");
-				const locsQuery = query(
-					locsRef,
-					where("zoneId", "in", assignedZoneIds)
-				);
+				const locsQuery = query(locsRef, where("userId", "==", userId));
 				const locSnaps = await getDocs(locsQuery);
 				const loadedLocs = locSnaps.docs.map(
 					(doc) => ({ id: doc.id, ...doc.data() } as LocationDocument)
@@ -63,7 +47,7 @@ export default function LocationList({ assignedZoneIds }: LocationListProps) {
 		};
 
 		fetchData();
-	}, [assignedZoneIds, db]);
+	}, [userId, db]);
 
 	const handleLocationAdded = (newLoc: LocationDocument) => {
 		setLocations((prev) => [...prev, newLoc]);
@@ -114,7 +98,7 @@ export default function LocationList({ assignedZoneIds }: LocationListProps) {
 				<AddLocationDialog
 					open={isAddOpen}
 					onOpenChange={setIsAddOpen}
-					zones={zones}
+					userId={userId}
 					onLocationAdded={handleLocationAdded}
 				/>
 			</Flex>

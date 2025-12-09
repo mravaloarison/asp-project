@@ -20,10 +20,10 @@ export interface ZoneDocument {
 
 export interface LocationDocument {
   id: string;
-  zoneId: string;
+  userId: string;
   name: string;
-  address?: string;
-  coordinates?: {
+  description?: string;
+  coordinates: {
     lat: number;
     lng: number;
   };

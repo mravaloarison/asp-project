@@ -1,27 +1,28 @@
 "use client";
 
-import { Dialog, Button, Flex, Progress, Text } from "@radix-ui/themes";
+import { Dialog, Button, Flex, Progress, Text, Avatar } from "@radix-ui/themes";
 import { useState } from "react";
 import { useJsApiLoader } from "@react-google-maps/api";
 import { addDoc, collection, getFirestore } from "firebase/firestore";
-import { ZoneDocument } from "@/app/firestore";
+import { CheckIcon } from "@radix-ui/react-icons";
 import StepSearch from "./location-search";
 import StepPin from "./location-pin";
 import StepDetails from "./location-details";
+import { DialogTitle } from "@radix-ui/react-dialog";
 
 const LIBRARIES: "places"[] = ["places"];
 
 interface AddLocationDialogProps {
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
-	zones: ZoneDocument[];
+	userId: string;
 	onLocationAdded: (newLoc: any) => void;
 }
 
 export default function AddLocationDialog({
 	open,
 	onOpenChange,
-	zones,
+	userId,
 	onLocationAdded,
 }: AddLocationDialogProps) {
 	const db = getFirestore();
@@ -37,14 +38,12 @@ export default function AddLocationDialog({
 	const [address, setAddress] = useState("");
 	const [name, setName] = useState("");
 	const [description, setDescription] = useState("");
-	const [zoneId, setZoneId] = useState("");
 
 	const reset = () => {
 		setStep(1);
 		setName("");
 		setAddress("");
 		setDescription("");
-		setZoneId("");
 		setCoords({ lat: -18.8792, lng: 47.5079 });
 	};
 
@@ -65,15 +64,15 @@ export default function AddLocationDialog({
 	};
 
 	const handleSave = async () => {
-		if (!name || !zoneId) return;
+		if (!name || !userId) return;
 		setLoading(true);
 
 		try {
 			const newLocData = {
 				name,
+				userId,
 				address,
 				description,
-				zoneId,
 				coordinates: coords,
 			};
 			const docRef = await addDoc(
@@ -92,8 +91,6 @@ export default function AddLocationDialog({
 
 	if (!isLoaded) return null;
 
-	const progressValue = (step / 3) * 100;
-
 	return (
 		<Dialog.Root
 			open={open}
@@ -102,17 +99,58 @@ export default function AddLocationDialog({
 				onOpenChange(v);
 			}}
 		>
-			<Dialog.Content style={{ maxWidth: 500 }}>
-				<Flex justify="between" align="center" mb="4">
-					<Dialog.Title style={{ margin: 0 }}>
-						Add New Location
-					</Dialog.Title>
-					<Text size="1" color="gray">
-						Step {step} of 3
-					</Text>
-				</Flex>
+			<Dialog.Content style={{ maxWidth: 600 }}>
+				<DialogTitle>Add New Operating Location</DialogTitle>
+				<Flex justify="center" align="center" gap="2" my="4">
+					<Flex direction="column" align="center" gap="1">
+						<Avatar
+							size="2"
+							variant={step >= 1 ? "solid" : "soft"}
+							fallback={
+								step > 1 ? (
+									<CheckIcon width="14" height="14" />
+								) : (
+									"1"
+								)
+							}
+						/>
+						<Text size="1">Search</Text>
+					</Flex>
 
-				<Progress value={progressValue} mb="4" />
+					<Progress
+						value={step > 1 ? 100 : 0}
+						style={{ width: 60, marginTop: -20 }}
+					/>
+
+					<Flex direction="column" align="center" gap="1">
+						<Avatar
+							size="2"
+							variant={step >= 2 ? "solid" : "soft"}
+							fallback={
+								step > 2 ? (
+									<CheckIcon width="14" height="14" />
+								) : (
+									"2"
+								)
+							}
+						/>
+						<Text size="1">Pin</Text>
+					</Flex>
+
+					<Progress
+						value={step > 2 ? 100 : 0}
+						style={{ width: 60, marginTop: -20 }}
+					/>
+
+					<Flex direction="column" align="center" gap="1">
+						<Avatar
+							size="2"
+							variant={step >= 3 ? "solid" : "soft"}
+							fallback="3"
+						/>
+						<Text size="1">Details</Text>
+					</Flex>
+				</Flex>
 
 				<div style={{ minHeight: 320 }}>
 					{step === 1 && (
@@ -131,9 +169,6 @@ export default function AddLocationDialog({
 							setName={setName}
 							description={description}
 							setDescription={setDescription}
-							zoneId={zoneId}
-							setZoneId={setZoneId}
-							zones={zones}
 						/>
 					)}
 				</div>
@@ -162,10 +197,7 @@ export default function AddLocationDialog({
 					)}
 
 					{step === 3 && (
-						<Button
-							onClick={handleSave}
-							disabled={loading || !zoneId}
-						>
+						<Button onClick={handleSave} disabled={loading}>
 							{loading ? "Saving..." : "Save Location"}
 						</Button>
 					)}
