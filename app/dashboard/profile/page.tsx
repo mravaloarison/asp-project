@@ -9,105 +9,90 @@ import {
 	Text,
 	Button,
 } from "@radix-ui/themes";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { onAuthStateChanged, User } from "firebase/auth";
+import {
+	doc,
+	getDoc,
+	getFirestore,
+	updateDoc,
+	deleteDoc,
+} from "firebase/firestore";
+import { auth } from "../../firebase";
 import ProfileDetails from "./components/profile-details";
 import LocationList from "./components/location-list";
-import { Location } from "./types";
-
-const mockLocationsData: Location[] = [
-	{
-		id: 1,
-		name: "New York Office",
-		region: "North America",
-		coords: "40.7128, -74.0060",
-	},
-	{
-		id: 2,
-		name: "Times Square Site",
-		region: "North America",
-		coords: "40.7589, -73.9851",
-	},
-];
+import { useRouter } from "next/navigation";
+import { UserDocument } from "@/app/firestore";
 
 export default function ProfilePage() {
-	const [locations, setLocations] = useState<Location[]>(mockLocationsData);
+	const [user, setUser] = useState<User | null>(null);
+	const [userData, setUserData] = useState<UserDocument | null>(null);
 	const [statusMessage, setStatusMessage] = useState<string | null>(null);
+	const [loading, setLoading] = useState(true);
+	const router = useRouter();
+	const db = getFirestore();
 
-	const handleProfileSave = (name: string, company: string) => {
-		console.log("Saving to firebase:", { name, company });
-		showStatus("Profile updated successfully!");
-	};
-
-	const handleDeleteAccount = () => {
-		console.log("Delete account triggered");
-	};
-
-	const handleAddLocationClick = () => {
-		console.log("Navigating to Add View...");
-	};
-
-	const handleUpdateLocation = (updatedLoc: Location) => {
-		setLocations((prev) =>
-			prev.map((loc) => (loc.id === updatedLoc.id ? updatedLoc : loc))
-		);
-		showStatus("Location updated!");
-	};
-
-	const handleDeleteLocation = (id: number) => {
-		setLocations((prev) => prev.filter((loc) => loc.id !== id));
-		showStatus("Location deleted.");
-	};
+	useEffect(() => {
+		const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+			if (currentUser) {
+				setUser(currentUser);
+				try {
+					const docRef = doc(db, "users", currentUser.uid);
+					const docSnap = await getDoc(docRef);
+					if (docSnap.exists()) {
+						setUserData(docSnap.data() as UserDocument);
+					}
+				} catch (error) {
+					console.error("Error fetching user profile:", error);
+				}
+			} else {
+				router.push("/signin");
+			}
+			setLoading(false);
+		});
+		return () => unsubscribe();
+	}, [db, router]);
 
 	const showStatus = (msg: string) => {
 		setStatusMessage(msg);
 		setTimeout(() => setStatusMessage(null), 3000);
 	};
 
-	const content = () => {
-		return (
-			<Flex
-				direction="column"
-				gap="3"
-				style={{ flexGrow: 1, minHeight: 0 }}
-			>
-				{statusMessage && (
-					<Box>
-						<Text weight="medium" color="green">
-							{statusMessage}
-						</Text>
-					</Box>
-				)}
-
-				<ProfileDetails
-					initialName="John Doe"
-					initialCompany="Acme Corp"
-					onSave={handleProfileSave}
-				/>
-
-				<Separator size="4" style={{ flexShrink: 0 }} />
-
-				<LocationList
-					locations={locations}
-					onAddLocation={handleAddLocationClick}
-					onUpdateLocation={handleUpdateLocation}
-					onDeleteLocation={handleDeleteLocation}
-				/>
-
-				<Separator size="4" style={{ flexShrink: 0 }} />
-
-				<Flex direction="column" gap="3" style={{ flexShrink: 0 }}>
-					<Button
-						size="3"
-						onClick={handleDeleteAccount}
-						variant="soft"
-						color="red"
-					>
-						Delete Account
-					</Button>
-				</Flex>
-			</Flex>
-		);
+	const handleProfileSave = async (name: string, company: string) => {
+		if (!user) return;
+		try {
+			await updateDoc(doc(db, "users", user.uid), {
+				displayName: name,
+				companyName: company,
+			});
+			setUserData((prev) =>
+				prev
+					? { ...prev, displayName: name, companyName: company }
+					: null
+			);
+			showStatus("Profile updated successfully!");
+		} catch (error) {
+			console.error("Error updating profile:", error);
+			showStatus("Failed to update profile.");
+		}
 	};
+
+	const handleDeleteAccount = async () => {
+		if (!user) return;
+		const confirm = window.confirm("Are you sure? This cannot be undone.");
+		if (confirm) {
+			try {
+				await deleteDoc(doc(db, "users", user.uid));
+				await user.delete();
+				router.push("/signup");
+			} catch (error) {
+				console.error("Error deleting account:", error);
+				showStatus("Error deleting account. You may need to re-login.");
+			}
+		}
+	};
+
+	if (loading) return null;
 
 	return (
 		<Container
@@ -129,7 +114,46 @@ export default function ProfilePage() {
 					flexDirection: "column",
 				}}
 			>
-				{content()}
+				<Flex
+					direction="column"
+					gap="3"
+					style={{ flexGrow: 1, minHeight: 0 }}
+				>
+					{statusMessage && (
+						<Box>
+							<Text weight="medium" color="green">
+								{statusMessage}
+							</Text>
+						</Box>
+					)}
+
+					<ProfileDetails
+						initialName={userData?.displayName || ""}
+						initialCompany={userData?.companyName || ""}
+						onSave={handleProfileSave}
+					/>
+
+					<Separator size="4" style={{ flexShrink: 0 }} />
+
+					{userData && (
+						<LocationList
+							assignedZoneIds={userData.assignedZoneIds || []}
+						/>
+					)}
+
+					<Separator size="4" style={{ flexShrink: 0 }} />
+
+					<Flex direction="column" gap="3" style={{ flexShrink: 0 }}>
+						<Button
+							size="3"
+							onClick={handleDeleteAccount}
+							variant="soft"
+							color="red"
+						>
+							Delete Account
+						</Button>
+					</Flex>
+				</Flex>
 			</Card>
 		</Container>
 	);

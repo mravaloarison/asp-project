@@ -14,7 +14,7 @@ export default function RootPage() {
 	useEffect(() => {
 		const unsubscribe = onAuthStateChanged(auth, (user) => {
 			if (user) {
-				router.replace("/dashboard");
+				router.replace("/dashboard/user");
 			} else {
 				router.replace("/signin");
 			}
@@ -34,4 +34,3 @@ export default function RootPage() {
 
 	return null;
 }
-

@@ -22,6 +22,7 @@ interface SignUpFormContentProps {
 	onSignUp: () => Promise<void>;
 	onCompleteProfile: () => Promise<void>;
 	loading: boolean;
+	cancelSignUp: () => Promise<void>;
 }
 
 const slideVariants = {
@@ -55,6 +56,7 @@ export default function SignUpFormContent({
 	onSignUp,
 	onCompleteProfile,
 	loading,
+	cancelSignUp,
 }: SignUpFormContentProps) {
 	const [step, setStep] = useState(1);
 	const [direction, setDirection] = useState(0);
@@ -68,6 +70,7 @@ export default function SignUpFormContent({
 
 	function handleBack() {
 		setDirection(-1);
+		cancelSignUp();
 		setStep(1);
 	}
 
@@ -77,13 +80,13 @@ export default function SignUpFormContent({
 				await onSignUp();
 				handleNext();
 			} catch (error) {
-				console.error("Sign up failed, staying on step 1");
+				console.log("Sign up failed, staying on step 1");
 			}
 		} else {
 			try {
 				await onCompleteProfile();
 			} catch (error) {
-				console.error("Profile save failed");
+				console.log("Profile save failed");
 			}
 		}
 	}

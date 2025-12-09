@@ -84,6 +84,15 @@ export default function Page() {
 		}
 	}
 
+	async function cancelSignUp() {
+		setLoading(true);
+		const user = auth.currentUser;
+		if (user) {
+			await user.delete();
+		}
+		setLoading(false);
+	}
+
 	return (
 		<AuthLayout errorMsg={errorMsg} description={description}>
 			<SignUpFormContent
@@ -100,6 +109,7 @@ export default function Page() {
 				onSignUp={handleSignUpAuth}
 				onCompleteProfile={handleCompleteProfile}
 				loading={loading}
+				cancelSignUp={cancelSignUp}
 			/>
 		</AuthLayout>
 	);
