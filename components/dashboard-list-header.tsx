@@ -1,3 +1,5 @@
+"use client";
+
 import { Flex, SegmentedControl, TextField, Text } from "@radix-ui/themes";
 import { MagnifyingGlassIcon } from "@radix-ui/react-icons";
 
@@ -27,8 +29,8 @@ export default function DashboardListSectionHeader({
 					<SegmentedControl.Item value="users">
 						view users
 					</SegmentedControl.Item>
-					<SegmentedControl.Item value="organizations">
-						view organizations
+					<SegmentedControl.Item value="zones">
+						view zones
 					</SegmentedControl.Item>
 				</SegmentedControl.Root>
 			</Flex>

@@ -14,6 +14,7 @@ export default function DashboardLayout({
 	children: React.ReactNode;
 }) {
 	const [user, setUser] = useState<User | null>(auth.currentUser);
+	const [loading, setLoading] = useState(true);
 	const router = useRouter();
 	const pathname = usePathname();
 
@@ -29,10 +30,17 @@ export default function DashboardLayout({
 	useEffect(() => {
 		const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
 			setUser(currentUser);
+			setLoading(false);
 			if (!currentUser) router.push("/signin");
 		});
 		return () => unsubscribe();
 	}, [router]);
+
+	useEffect(() => {
+		if (pathname === "/dashboard") {
+			router.replace("/dashboard/user");
+		}
+	}, [pathname, router]);
 
 	const mapComponent = () => (
 		<Grid gridColumn={{ sm: "span 1", md: "span 2" }}>
@@ -42,7 +50,7 @@ export default function DashboardLayout({
 
 	const hideDashboard = pathname.endsWith("/profile");
 
-	if (!user) {
+	if (loading || !user || pathname === "/dashboard") {
 		return null;
 	}
 

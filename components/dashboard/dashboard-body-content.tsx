@@ -7,26 +7,27 @@ import {
 	Separator,
 	Text,
 	TextField,
+	Box,
+	Card,
 } from "@radix-ui/themes";
-import { PersonIcon, BackpackIcon, SewingPinIcon } from "@radix-ui/react-icons";
+import { PersonIcon, BackpackIcon } from "@radix-ui/react-icons";
 import { useRouter } from "next/navigation";
 import UserCard from "@/components/dashboard-user-card";
 import ZoneCard from "@/components/dashboard-zone-card";
-
-interface UserData {
-	name: string;
-	company: string;
-}
+import { UserDocument, ZoneDocument, LocationDocument } from "@/app/firestore";
 
 interface DashboardBodyContentProps {
 	viewState: string;
 	currentSegment: string;
 	selectedZoneName: string | undefined;
 	zoneId: string | undefined;
-	selectedUserData: UserData | undefined;
-	navigateToZone: (id: number) => void;
-	navigateToUserFromList: (id: number) => void;
-	navigateToUserFromZone: (zoneId: string, userId: number) => void;
+	selectedUser: UserDocument | undefined;
+	users: UserDocument[];
+	zones: ZoneDocument[];
+	locations: LocationDocument[];
+	navigateToZone: (id: string) => void;
+	navigateToUserFromList: (id: string) => void;
+	navigateToUserFromZone: (zoneId: string, userId: string) => void;
 }
 
 export default function DashboardBodyContent({
@@ -34,12 +35,23 @@ export default function DashboardBodyContent({
 	currentSegment,
 	selectedZoneName,
 	zoneId,
-	selectedUserData,
+	selectedUser,
+	users,
+	zones,
+	locations,
 	navigateToZone,
 	navigateToUserFromList,
 	navigateToUserFromZone,
 }: DashboardBodyContentProps) {
 	const router = useRouter();
+
+	const getUserLocationCount = (uid: string) => {
+		return locations.filter((loc) => loc.userId === uid).length;
+	};
+
+	const getUserLocations = (uid: string) => {
+		return locations.filter((loc) => loc.userId === uid);
+	};
 
 	switch (viewState) {
 		case "MAIN_DASHBOARD":
@@ -50,79 +62,107 @@ export default function DashboardBodyContent({
 
 		case "MAIN_LIST":
 			return (
-				<Flex gap="3" direction="column" pt="3">
+				<Flex gap="3" direction="column" pt="1">
 					{currentSegment === "users"
-						? [...Array(12)].map((_, i) => (
+						? users.map((user) => (
 								<div
-									key={i}
+									key={user.uid}
 									onClick={() =>
-										navigateToUserFromList(i + 1)
+										navigateToUserFromList(user.uid)
 									}
+									style={{ cursor: "pointer" }}
 								>
 									<UserCard
-										name={`User ${i + 1}`}
-										company={`Company ${i + 1}`}
-										department="Urban Development"
-										locations={2}
-										avatarFallback="U"
+										name={user.displayName}
+										company={user.companyName}
+										department={user.department || "Agent"}
+										locations={getUserLocationCount(
+											user.uid
+										)}
+										avatarFallback={
+											user.displayName?.[0] || "U"
+										}
 									/>
 								</div>
 						  ))
-						: [...Array(4)].map((_, i) => (
+						: zones.map((zone) => (
 								<div
-									key={i}
-									onClick={() => navigateToZone(i + 1)}
+									key={zone.id}
+									onClick={() => navigateToZone(zone.id)}
+									style={{ cursor: "pointer" }}
 								>
 									<ZoneCard
-										ZoneName={`Zone ${i + 1}`}
-										numberOfUsers={Math.floor(
-											Math.random() * 100
-										)}
-										numberOfLocations={Math.floor(
-											Math.random() * 20
-										)}
+										ZoneName={zone.name}
+										numberOfUsers={
+											zone.assignedUserIds?.length || 0
+										}
+										numberOfLocations={
+											zone.locationCount || 0
+										}
 									/>
 								</div>
 						  ))}
+					{currentSegment === "users" && users.length === 0 && (
+						<Text align="center" color="gray" size="2">
+							No users found.
+						</Text>
+					)}
+					{currentSegment === "zones" && zones.length === 0 && (
+						<Text align="center" color="gray" size="2">
+							No zones found.
+						</Text>
+					)}
 				</Flex>
 			);
 
 		case "ZONE_MEMBERS":
+			const zoneUsers = users.filter((u) =>
+				u.assignedZoneIds?.includes(zoneId || "")
+			);
+
 			return (
-				<Flex direction="column" gap="3" pt="3">
-					{[...Array(5)].map((_, i) => (
+				<Flex direction="column" gap="3" pt="1">
+					{zoneUsers.map((user) => (
 						<div
-							key={i}
+							key={user.uid}
 							onClick={() =>
-								navigateToUserFromZone(zoneId!, i + 1)
+								navigateToUserFromZone(zoneId!, user.uid)
 							}
+							style={{ cursor: "pointer" }}
 						>
 							<UserCard
-								name={`Zone User ${i + 1}`}
-								company={selectedZoneName || "Company"}
-								department="Field Ops"
-								locations={1}
-								avatarFallback={`Z${i}`}
+								name={user.displayName}
+								company={user.companyName}
+								department={user.department || "Agent"}
+								locations={getUserLocationCount(user.uid)}
+								avatarFallback={user.displayName?.[0] || "U"}
 							/>
 						</div>
 					))}
+					{zoneUsers.length === 0 && (
+						<Text align="center" color="gray" size="2">
+							No agents assigned to this zone.
+						</Text>
+					)}
 				</Flex>
 			);
 
 		case "USER_READ_ONLY":
 		case "ZONE_USER_READ_ONLY":
-			const user = selectedUserData;
+			const user = selectedUser;
+			const userLocs = user ? getUserLocations(user.uid) : [];
+
 			return (
-				<Flex direction="column" gap="4" pt="3">
+				<Flex direction="column" gap="4" pt="1">
 					<Flex align="center" gap="4">
 						<Avatar
 							size="5"
-							fallback={user?.name?.[0] || "U"}
+							fallback={user?.displayName?.[0] || "U"}
 							variant="solid"
 							color="indigo"
 						/>
 						<Flex direction="column">
-							<Heading size="3">{user?.name}</Heading>
+							<Heading size="3">{user?.displayName}</Heading>
 							<Text color="gray" size="2">
 								Connected User
 							</Text>
@@ -137,7 +177,7 @@ export default function DashboardBodyContent({
 							<TextField.Root
 								size="3"
 								variant="surface"
-								value={user?.name || ""}
+								value={user?.displayName || ""}
 								readOnly
 								style={{
 									pointerEvents: "none",
@@ -156,7 +196,7 @@ export default function DashboardBodyContent({
 							<TextField.Root
 								size="3"
 								variant="surface"
-								value={user?.company || ""}
+								value={user?.companyName || ""}
 								readOnly
 								style={{
 									pointerEvents: "none",
@@ -168,25 +208,57 @@ export default function DashboardBodyContent({
 								</TextField.Slot>
 							</TextField.Root>
 						</label>
-						<label>
-							<Text size="2" weight="bold" color="gray">
-								Assigned Zone
-							</Text>
-							<TextField.Root
-								size="3"
-								variant="surface"
-								value={selectedZoneName || "General Region"}
-								readOnly
-								style={{
-									pointerEvents: "none",
-									backgroundColor: "var(--gray-3)",
-								}}
+						<Box>
+							<Text
+								size="2"
+								weight="bold"
+								color="gray"
+								mb="2"
+								as="div"
 							>
-								<TextField.Slot>
-									<SewingPinIcon />
-								</TextField.Slot>
-							</TextField.Root>
-						</label>
+								Assigned Locations ({userLocs.length})
+							</Text>
+							<Flex direction="column" gap="2">
+								{userLocs.map((loc) => (
+									<Card
+										key={loc.id}
+										style={{
+											backgroundColor: "var(--gray-2)",
+										}}
+									>
+										<Flex justify="between" align="center">
+											<Box>
+												<Text
+													size="2"
+													weight="bold"
+													as="div"
+												>
+													{loc.name}
+												</Text>
+												<Text size="1" color="gray">
+													{loc.coordinates.lat.toFixed(
+														4
+													)}
+													,{" "}
+													{loc.coordinates.lng.toFixed(
+														4
+													)}
+												</Text>
+											</Box>
+										</Flex>
+									</Card>
+								))}
+								{userLocs.length === 0 && (
+									<Text
+										size="2"
+										color="gray"
+										style={{ fontStyle: "italic" }}
+									>
+										No locations assigned.
+									</Text>
+								)}
+							</Flex>
+						</Box>
 					</Flex>
 				</Flex>
 			);
