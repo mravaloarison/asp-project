@@ -1,17 +1,12 @@
 import { Flex, Text, Card } from "@radix-ui/themes";
-import { PersonIcon, SewingPinIcon } from "@radix-ui/react-icons";
+import { PersonIcon } from "@radix-ui/react-icons";
 
 interface ZoneCardProps {
 	ZoneName: string;
 	numberOfUsers: number;
-	numberOfLocations: number;
 }
 
-export default function ZoneCard({
-	ZoneName,
-	numberOfUsers,
-	numberOfLocations,
-}: ZoneCardProps) {
+export default function ZoneCard({ ZoneName, numberOfUsers }: ZoneCardProps) {
 	return (
 		<Card
 			className="user-card-hover-effect"
@@ -26,17 +21,10 @@ export default function ZoneCard({
 					{ZoneName}
 				</Text>
 
-				<Flex gap="2" align="center" pt="3">
+				<Flex gap="2" align="center">
 					<PersonIcon />
 					<Text size="2" color="gray" weight="medium">
 						{numberOfUsers} users
-					</Text>
-				</Flex>
-
-				<Flex gap="2" align="center">
-					<SewingPinIcon />
-					<Text size="2" color="gray" weight="medium">
-						{numberOfLocations} locations
 					</Text>
 				</Flex>
 			</Flex>

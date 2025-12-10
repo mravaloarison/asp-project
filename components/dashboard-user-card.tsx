@@ -1,4 +1,4 @@
-import { Flex, Text, Avatar, Card } from "@radix-ui/themes";
+import { Flex, Text, Avatar, Card, Badge } from "@radix-ui/themes";
 import {
 	BackpackIcon,
 	Pencil2Icon,
@@ -29,40 +29,28 @@ export default function UserCard({
 				transition: "border-color 0.01s ease",
 			}}
 		>
-			<Flex gap="3" align="start">
-				<Avatar
-					size="4"
-					fallback={avatarFallback}
-					color="blue"
-					radius="full"
-				/>
+			<Flex justify="between" align="start">
+				<Flex gap="3" align="start">
+					<Avatar size="4" fallback={avatarFallback} />
 
-				<Flex direction="column" style={{ minWidth: 0 }}>
-					<Text size="3" weight="medium">
-						{name}
-					</Text>
-
-					<Flex gap="2" align="center">
-						<BackpackIcon />
-						<Text size="2" color="gray" weight="medium">
-							{company}
+					<Flex direction="column" style={{ minWidth: 0 }}>
+						<Text size="3" weight="medium">
+							{name}
 						</Text>
-					</Flex>
 
-					<Flex gap="2" align="center">
-						<Pencil2Icon />
-						<Text size="2" color="gray" weight="medium">
-							{department}
-						</Text>
-					</Flex>
-
-					<Flex gap="2" align="center" style={{ paddingTop: 8 }}>
-						<SewingPinIcon />
-						<Text size="1" color="gray" weight="medium">
-							{locations} locations
-						</Text>
+						<Flex gap="2" align="center">
+							<BackpackIcon />
+							<Text size="2" color="gray" weight="medium">
+								{company}
+							</Text>
+						</Flex>
 					</Flex>
 				</Flex>
+				<Badge size="2">
+					<Text size="1" color="gray" weight="medium">
+						{locations} locations
+					</Text>
+				</Badge>
 			</Flex>
 		</Card>
 	);

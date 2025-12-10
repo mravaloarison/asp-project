@@ -9,6 +9,7 @@ import {
 	TextField,
 	Box,
 	Card,
+	Badge,
 } from "@radix-ui/themes";
 import { PersonIcon, BackpackIcon } from "@radix-ui/react-icons";
 import { useRouter } from "next/navigation";
@@ -33,7 +34,6 @@ interface DashboardBodyContentProps {
 export default function DashboardBodyContent({
 	viewState,
 	currentSegment,
-	selectedZoneName,
 	zoneId,
 	selectedUser,
 	users,
@@ -96,9 +96,6 @@ export default function DashboardBodyContent({
 										numberOfUsers={
 											zone.assignedUserIds?.length || 0
 										}
-										numberOfLocations={
-											zone.locationCount || 0
-										}
 									/>
 								</div>
 						  ))}
@@ -152,19 +149,24 @@ export default function DashboardBodyContent({
 			const user = selectedUser;
 			const userLocs = user ? getUserLocations(user.uid) : [];
 
+			const formatDate = (timestamp: number) => {
+				return new Date(timestamp).toLocaleDateString("en-US", {
+					month: "short",
+					year: "numeric",
+				});
+			};
+
 			return (
 				<Flex direction="column" gap="4" pt="1">
 					<Flex align="center" gap="4">
 						<Avatar
 							size="5"
 							fallback={user?.displayName?.[0] || "U"}
-							variant="solid"
-							color="indigo"
 						/>
 						<Flex direction="column">
 							<Heading size="3">{user?.displayName}</Heading>
 							<Text color="gray" size="2">
-								Connected User
+								Member since {formatDate(user?.createdAt || 0)}
 							</Text>
 						</Flex>
 					</Flex>
@@ -219,32 +221,44 @@ export default function DashboardBodyContent({
 								Assigned Locations ({userLocs.length})
 							</Text>
 							<Flex direction="column" gap="2">
-								{userLocs.map((loc) => (
+								{userLocs.map((location) => (
 									<Card
-										key={loc.id}
-										style={{
-											backgroundColor: "var(--gray-2)",
-										}}
+										key={location.id}
+										className="user-card-hover-effect"
 									>
-										<Flex justify="between" align="center">
-											<Box>
-												<Text
-													size="2"
-													weight="bold"
-													as="div"
-												>
-													{loc.name}
+										<Flex direction="column" gap="2">
+											<Flex
+												justify="between"
+												align="start"
+											>
+												<Text size="3" weight="medium">
+													{location.name}
 												</Text>
-												<Text size="1" color="gray">
-													{loc.coordinates.lat.toFixed(
+												<Badge size="1" color="violet">
+													{location.coordinates.lat.toFixed(
 														4
 													)}
 													,{" "}
-													{loc.coordinates.lng.toFixed(
+													{location.coordinates.lng.toFixed(
 														4
 													)}
+												</Badge>
+											</Flex>
+											<Text size="2" color="gray">
+												{location.description
+													? location.description
+													: "No description"}
+											</Text>
+											{location.description && (
+												<Text
+													size="2"
+													style={{
+														fontStyle: "italic",
+													}}
+												>
+													{location.description}
 												</Text>
-											</Box>
+											)}
 										</Flex>
 									</Card>
 								))}
