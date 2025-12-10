@@ -49,9 +49,9 @@ export default function DashboardSidebar() {
 		const lower = search.toLowerCase();
 		return users.filter(
 			(u) =>
-				u.displayName.toLowerCase().includes(lower) ||
-				u.email.toLowerCase().includes(lower) ||
-				u.companyName?.toLowerCase().includes(lower)
+				(u.displayName || "").toLowerCase().includes(lower) ||
+				(u.email || "").toLowerCase().includes(lower) ||
+				(u.companyName || "").toLowerCase().includes(lower)
 		);
 	}, [users, search]);
 
@@ -60,8 +60,8 @@ export default function DashboardSidebar() {
 		const lower = search.toLowerCase();
 		return zones.filter(
 			(z) =>
-				z.name.toLowerCase().includes(lower) ||
-				z.region.toLowerCase().includes(lower)
+				(z.name || "").toLowerCase().includes(lower) ||
+				(z.region || "").toLowerCase().includes(lower)
 		);
 	}, [zones, search]);
 
