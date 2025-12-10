@@ -16,6 +16,11 @@ export interface ZoneDocument {
   region: string;
   assignedUserIds: string[];
   locationCount: number;
+  description?: string;
+  coordinates?: {
+    lat: number;
+    lng: number;
+  };
 }
 
 export interface LocationDocument {

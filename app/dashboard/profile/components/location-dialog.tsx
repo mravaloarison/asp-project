@@ -3,7 +3,16 @@
 import { Dialog, Button, Flex, Progress, Text, Avatar } from "@radix-ui/themes";
 import { useState } from "react";
 import { useJsApiLoader } from "@react-google-maps/api";
-import { addDoc, collection, getFirestore } from "firebase/firestore";
+import {
+	addDoc,
+	collection,
+	getFirestore,
+	doc,
+	getDoc,
+	updateDoc,
+	setDoc,
+	increment,
+} from "firebase/firestore";
 import { CheckIcon } from "@radix-ui/react-icons";
 import StepSearch from "./location-search";
 import StepPin from "./location-pin";
@@ -18,6 +27,16 @@ interface AddLocationDialogProps {
 	userId: string;
 	onLocationAdded: (newLoc: any) => void;
 }
+
+const extractZoneFromAddress = (address: string) => {
+	if (!address) return "Unknown Zone";
+	const parts = address.split(",");
+	// Heuristic: usually the 2nd to last part is the city/region in Google Maps formatted address
+	if (parts.length >= 2) {
+		return parts[parts.length - 2].trim();
+	}
+	return parts[0].trim();
+};
 
 export default function AddLocationDialog({
 	open,
@@ -66,19 +85,59 @@ export default function AddLocationDialog({
 	const handleSave = async () => {
 		if (!name || !userId) return;
 		setLoading(true);
-
 		try {
+			const zone = extractZoneFromAddress(address);
+
 			const newLocData = {
 				name,
 				userId,
 				address,
 				description,
+				zone,
 				coordinates: coords,
 			};
+
 			const docRef = await addDoc(
 				collection(db, "locations"),
 				newLocData
 			);
+
+			const zoneId = zone.toLowerCase().replace(/\s+/g, "-");
+			const zoneRef = doc(db, "zones", zoneId);
+			const zoneSnap = await getDoc(zoneRef);
+
+			if (zoneSnap.exists()) {
+				const currentUserIds = zoneSnap.data().assignedUserIds || [];
+				if (!currentUserIds.includes(userId)) {
+					await updateDoc(zoneRef, {
+						assignedUserIds: [...currentUserIds, userId],
+						locationCount: increment(1),
+					});
+				} else {
+					await updateDoc(zoneRef, {
+						locationCount: increment(1),
+					});
+				}
+			} else {
+				await setDoc(zoneRef, {
+					name: zone,
+					region: "Madagascar",
+					assignedUserIds: [userId],
+					locationCount: 1,
+				});
+			}
+
+			const userRef = doc(db, "users", userId);
+			const userSnap = await getDoc(userRef);
+			if (userSnap.exists()) {
+				const currentZoneIds = userSnap.data().assignedZoneIds || [];
+				if (!currentZoneIds.includes(zoneId)) {
+					await updateDoc(userRef, {
+						assignedZoneIds: [...currentZoneIds, zoneId],
+					});
+				}
+			}
+
 			onLocationAdded({ id: docRef.id, ...newLocData });
 			onOpenChange(false);
 			reset();

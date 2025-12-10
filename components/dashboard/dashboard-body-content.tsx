@@ -15,7 +15,7 @@ import { PersonIcon, BackpackIcon } from "@radix-ui/react-icons";
 import { useRouter } from "next/navigation";
 import UserCard from "@/components/dashboard-user-card";
 import ZoneCard from "@/components/dashboard-zone-card";
-import { UserDocument, ZoneDocument, LocationDocument } from "@/app/firestore";
+import { UserDocument, ZoneDocument } from "@/app/firestore";
 
 interface DashboardBodyContentProps {
 	viewState: string;
@@ -25,7 +25,6 @@ interface DashboardBodyContentProps {
 	selectedUser: UserDocument | undefined;
 	users: UserDocument[];
 	zones: ZoneDocument[];
-	locations: LocationDocument[];
 	navigateToZone: (id: string) => void;
 	navigateToUserFromList: (id: string) => void;
 	navigateToUserFromZone: (zoneId: string, userId: string) => void;
@@ -38,7 +37,6 @@ export default function DashboardBodyContent({
 	selectedUser,
 	users,
 	zones,
-	locations,
 	navigateToZone,
 	navigateToUserFromList,
 	navigateToUserFromZone,
@@ -46,11 +44,11 @@ export default function DashboardBodyContent({
 	const router = useRouter();
 
 	const getUserLocationCount = (uid: string) => {
-		return locations.filter((loc) => loc.userId === uid).length;
+		return zones.filter((z) => z.assignedUserIds?.includes(uid)).length;
 	};
 
 	const getUserLocations = (uid: string) => {
-		return locations.filter((loc) => loc.userId === uid);
+		return zones.filter((z) => z.assignedUserIds?.includes(uid));
 	};
 
 	switch (viewState) {
@@ -120,13 +118,7 @@ export default function DashboardBodyContent({
 			return (
 				<Flex direction="column" gap="3" pt="1">
 					{zoneUsers.map((user) => (
-						<div
-							key={user.uid}
-							onClick={() =>
-								navigateToUserFromZone(zoneId!, user.uid)
-							}
-							style={{ cursor: "pointer" }}
-						>
+						<div key={user.uid} style={{ cursor: "default" }}>
 							<UserCard
 								name={user.displayName}
 								company={user.companyName}
@@ -225,6 +217,9 @@ export default function DashboardBodyContent({
 									<Card
 										key={location.id}
 										className="user-card-hover-effect"
+										onClick={() => {
+											console.log("Update map");
+										}}
 									>
 										<Flex direction="column" gap="2">
 											<Flex
@@ -234,15 +229,20 @@ export default function DashboardBodyContent({
 												<Text size="3" weight="medium">
 													{location.name}
 												</Text>
-												<Badge size="1" color="violet">
-													{location.coordinates.lat.toFixed(
-														4
-													)}
-													,{" "}
-													{location.coordinates.lng.toFixed(
-														4
-													)}
-												</Badge>
+												{location.coordinates && (
+													<Badge
+														size="1"
+														color="violet"
+													>
+														{location.coordinates.lat.toFixed(
+															4
+														)}
+														,{" "}
+														{location.coordinates.lng.toFixed(
+															4
+														)}
+													</Badge>
+												)}
 											</Flex>
 											<Text size="2" color="gray">
 												{location.description

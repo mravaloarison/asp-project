@@ -7,7 +7,7 @@ import {
   where,
   getFirestore,
 } from "firebase/firestore";
-import { ZoneDocument, UserDocument, LocationDocument } from "@/app/firestore";
+import { ZoneDocument, UserDocument } from "@/app/firestore";
 
 const db = getFirestore();
 
@@ -45,20 +45,5 @@ export async function getUsersByZoneId(zoneId: string): Promise<UserDocument[]> 
   const snapshot = await getDocs(q);
   return snapshot.docs.map(
     (d) => ({ uid: d.id, ...d.data() } as UserDocument)
-  );
-}
-
-export async function getAllLocations(): Promise<LocationDocument[]> {
-  const snapshot = await getDocs(collection(db, "locations"));
-  return snapshot.docs.map(
-    (d) => ({ id: d.id, ...d.data() } as LocationDocument)
-  );
-}
-
-export async function getLocationsByUserId(userId: string): Promise<LocationDocument[]> {
-  const q = query(collection(db, "locations"), where("userId", "==", userId));
-  const snapshot = await getDocs(q);
-  return snapshot.docs.map(
-    (d) => ({ id: d.id, ...d.data() } as LocationDocument)
   );
 }

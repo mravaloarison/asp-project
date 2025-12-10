@@ -14,7 +14,7 @@ import {
 	getFirestore,
 } from "firebase/firestore";
 import LocationItem from "./location-item";
-import { LocationDocument } from "@/app/firestore";
+import { ZoneDocument } from "@/app/firestore";
 import AddLocationDialog from "./location-dialog";
 
 interface LocationListProps {
@@ -23,7 +23,7 @@ interface LocationListProps {
 
 export default function LocationList({ userId }: LocationListProps) {
 	const db = getFirestore();
-	const [locations, setLocations] = useState<LocationDocument[]>([]);
+	const [locations, setLocations] = useState<ZoneDocument[]>([]);
 	const [loading, setLoading] = useState(false);
 	const [isAddOpen, setIsAddOpen] = useState(false);
 
@@ -32,11 +32,14 @@ export default function LocationList({ userId }: LocationListProps) {
 			if (!userId) return;
 			setLoading(true);
 			try {
-				const locsRef = collection(db, "locations");
-				const locsQuery = query(locsRef, where("userId", "==", userId));
-				const locSnaps = await getDocs(locsQuery);
+				const zonesRef = collection(db, "zones");
+				const zonesQuery = query(
+					zonesRef,
+					where("assignedUserIds", "array-contains", userId)
+				);
+				const locSnaps = await getDocs(zonesQuery);
 				const loadedLocs = locSnaps.docs.map(
-					(doc) => ({ id: doc.id, ...doc.data() } as LocationDocument)
+					(doc) => ({ id: doc.id, ...doc.data() } as ZoneDocument)
 				);
 				setLocations(loadedLocs);
 			} catch (error) {
@@ -49,23 +52,23 @@ export default function LocationList({ userId }: LocationListProps) {
 		fetchData();
 	}, [userId, db]);
 
-	const handleLocationAdded = (newLoc: LocationDocument) => {
+	const handleLocationAdded = (newLoc: ZoneDocument) => {
 		setLocations((prev) => [...prev, newLoc]);
 	};
 
 	const handleDeleteLocation = async (id: string) => {
 		try {
-			await deleteDoc(doc(db, "locations", id));
+			await deleteDoc(doc(db, "zones", id));
 			setLocations((prev) => prev.filter((loc) => loc.id !== id));
 		} catch (error) {
 			console.error(error);
 		}
 	};
 
-	const handleUpdateLocation = async (updatedLoc: LocationDocument) => {
+	const handleUpdateLocation = async (updatedLoc: ZoneDocument) => {
 		try {
 			const { id, ...data } = updatedLoc;
-			await updateDoc(doc(db, "locations", id), data);
+			await updateDoc(doc(db, "zones", id), data);
 			setLocations((prev) =>
 				prev.map((loc) => (loc.id === id ? updatedLoc : loc))
 			);

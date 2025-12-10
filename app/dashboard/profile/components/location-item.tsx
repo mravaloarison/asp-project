@@ -11,11 +11,11 @@ import {
 } from "@radix-ui/themes";
 import { Pencil2Icon, TrashIcon } from "@radix-ui/react-icons";
 import { useState } from "react";
-import { LocationDocument } from "@/app/firestore";
+import { ZoneDocument } from "@/app/firestore";
 
 interface LocationItemProps {
-	location: LocationDocument;
-	onUpdate: (updatedLoc: LocationDocument) => void;
+	location: ZoneDocument;
+	onUpdate: (updatedLoc: ZoneDocument) => void;
 	onDelete: (id: string) => void;
 }
 
@@ -39,9 +39,11 @@ export default function LocationItem({
 		setOpenEdit(false);
 	};
 
-	const coordsString = `${location.coordinates.lat.toFixed(
-		4
-	)}, ${location.coordinates.lng.toFixed(4)}`;
+	const coordsString = location.coordinates
+		? `${location.coordinates.lat.toFixed(
+				4
+		  )}, ${location.coordinates.lng.toFixed(4)}`
+		: "No coordinates";
 
 	return (
 		<Box
