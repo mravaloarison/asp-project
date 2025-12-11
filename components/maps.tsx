@@ -122,6 +122,34 @@ export default function Maps() {
 		[locations]
 	);
 
+	const zoneCentroids = useMemo(() => {
+		const accum = new Map<
+			string,
+			{ lat: number; lng: number; count: number }
+		>();
+		locationsWithCoords.forEach((loc) => {
+			const zoneKey = toZoneId(loc.zone);
+			if (!zoneKey || !loc.coordinates) return;
+			const existing = accum.get(zoneKey) || {
+				lat: 0,
+				lng: 0,
+				count: 0,
+			};
+			existing.lat += loc.coordinates.lat;
+			existing.lng += loc.coordinates.lng;
+			existing.count += 1;
+			accum.set(zoneKey, existing);
+		});
+		const result = new Map<string, { lat: number; lng: number }>();
+		accum.forEach((value, key) => {
+			result.set(key, {
+				lat: value.lat / value.count,
+				lng: value.lng / value.count,
+			});
+		});
+		return result;
+	}, [locationsWithCoords]);
+
 	const visibleLocations = useMemo(() => {
 		let list = locationsWithCoords;
 		if (selectedZoneId) {
@@ -143,20 +171,45 @@ export default function Maps() {
 		[locationsWithCoords, focusedLocationId]
 	);
 
-	const zoneMarkers = useMemo(() => {
+	interface ZoneMarkerData {
+		zone: ZoneDocument;
+		coordinates: { lat: number; lng: number };
+	}
+
+	const zoneMarkers = useMemo<ZoneMarkerData[]>(() => {
 		if (!isZoneView) return [];
+		const markers: ZoneMarkerData[] = [];
+		zones.forEach((zone) => {
+			const coords =
+				zone.coordinates ||
+				zoneCentroids.get(zone.id) ||
+				(zone.name ? zoneCentroids.get(toZoneId(zone.name)) : undefined);
+			if (!coords) return;
+			markers.push({ zone, coordinates: coords });
+		});
 		if (selectedZoneId) {
-			return selectedZone?.coordinates ? [selectedZone] : [];
+			return markers.filter((marker) => marker.zone.id === selectedZoneId);
 		}
-		return zones.filter((z) => z.coordinates);
-	}, [isZoneView, selectedZoneId, selectedZone, zones]);
+		return markers;
+	}, [isZoneView, zones, zoneCentroids, selectedZoneId]);
+
+	const selectedZoneCenter = useMemo(() => {
+		if (!selectedZoneId) return undefined;
+		return (
+			selectedZone?.coordinates ||
+			zoneCentroids.get(selectedZoneId) ||
+			(selectedZone?.name
+				? zoneCentroids.get(toZoneId(selectedZone.name))
+				: undefined)
+		);
+	}, [selectedZoneId, selectedZone, zoneCentroids]);
 
 	const mapCenter = useMemo(() => {
 		if (activeLocation?.coordinates) {
 			return activeLocation.coordinates;
 		}
-		if (selectedZone?.coordinates) {
-			return selectedZone.coordinates;
+		if (selectedZoneCenter) {
+			return selectedZoneCenter;
 		}
 		const target = visibleLocations.length
 			? visibleLocations
@@ -176,13 +229,10 @@ export default function Maps() {
 		}
 		if (zoneMarkers.length) {
 			const sum = zoneMarkers.reduce(
-				(acc, zone) => {
-					if (!zone.coordinates) return acc;
-					return {
-						lat: acc.lat + zone.coordinates.lat,
-						lng: acc.lng + zone.coordinates.lng,
-					};
-				},
+				(acc, marker) => ({
+					lat: acc.lat + marker.coordinates.lat,
+					lng: acc.lng + marker.coordinates.lng,
+				}),
 				{ lat: 0, lng: 0 }
 			);
 			return {
@@ -193,7 +243,7 @@ export default function Maps() {
 		return DEFAULT_CENTER;
 	}, [
 		activeLocation,
-		selectedZone,
+		selectedZoneCenter,
 		visibleLocations,
 		locationsWithCoords,
 		zoneMarkers,
@@ -276,52 +326,50 @@ export default function Maps() {
 				onClick={handleMapClick}
 			>
 				{hasZonePins &&
-					zoneMarkers.map((zone) =>
-						zone.coordinates ? (
-							<Fragment key={`zone-wrap-${zone.id}`}>
-								<MarkerF
-									key={`zone-${zone.id}`}
-									position={zone.coordinates}
-									label={{
-										text: zone.name,
-										className:
-											"dashboard-map-marker-label" +
-											(zone.id === selectedZoneId
-												? " dashboard-map-marker-label--active"
-												: ""),
-									}}
-									icon={{
-										path: google.maps.SymbolPath.CIRCLE,
-										scale: zone.id === selectedZoneId ? 10 : 8,
-										fillColor:
-											zone.id === selectedZoneId
-												? "#7c3aed"
-												: "#14b8a6",
-										fillOpacity: 0.95,
-										strokeWeight: 2,
-										strokeColor: "white",
-									}}
-									onClick={() => handleZoneMarkerClick(zone.id)}
-								/>
-								<CircleF
-									key={`zone-circle-${zone.id}`}
-									center={zone.coordinates}
-									radius={ZONE_RADIUS_METERS}
-									options={{
-										fillColor:
-											zone.id === selectedZoneId
-												? "rgba(124, 58, 237, 0.15)"
-												: "rgba(20, 184, 166, 0.12)",
-										strokeColor:
-											zone.id === selectedZoneId
-												? "#7c3aed"
-												: "#14b8a6",
-										strokeWeight: 1.5,
-									}}
-								/>
-							</Fragment>
-						) : null
-					)}
+					zoneMarkers.map(({ zone, coordinates }) => (
+						<Fragment key={`zone-wrap-${zone.id}`}>
+							<MarkerF
+								key={`zone-${zone.id}`}
+								position={coordinates}
+								label={{
+									text: zone.name,
+									className:
+										"dashboard-map-marker-label" +
+										(zone.id === selectedZoneId
+											? " dashboard-map-marker-label--active"
+											: ""),
+								}}
+								icon={{
+									path: google.maps.SymbolPath.CIRCLE,
+									scale: zone.id === selectedZoneId ? 10 : 8,
+									fillColor:
+										zone.id === selectedZoneId
+											? "#7c3aed"
+											: "#14b8a6",
+									fillOpacity: 0.95,
+									strokeWeight: 2,
+									strokeColor: "white",
+								}}
+								onClick={() => handleZoneMarkerClick(zone.id)}
+							/>
+							<CircleF
+								key={`zone-circle-${zone.id}`}
+								center={coordinates}
+								radius={ZONE_RADIUS_METERS}
+								options={{
+									fillColor:
+										zone.id === selectedZoneId
+											? "rgba(124, 58, 237, 0.15)"
+											: "rgba(20, 184, 166, 0.12)",
+									strokeColor:
+										zone.id === selectedZoneId
+											? "#7c3aed"
+											: "#14b8a6",
+									strokeWeight: 1.5,
+								}}
+							/>
+						</Fragment>
+					))}
 				{hasLocationPins &&
 					visibleLocations.map((loc) =>
 						loc.coordinates ? (
