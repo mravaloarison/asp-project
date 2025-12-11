@@ -180,10 +180,11 @@ export default function Maps() {
 		if (!isZoneView) return [];
 		const markers: ZoneMarkerData[] = [];
 		zones.forEach((zone) => {
+			const fallbackKey = zone.name ? toZoneId(zone.name) : undefined;
 			const coords =
 				zone.coordinates ||
 				zoneCentroids.get(zone.id) ||
-				(zone.name ? zoneCentroids.get(toZoneId(zone.name)) : undefined);
+				(fallbackKey ? zoneCentroids.get(fallbackKey) : undefined);
 			if (!coords) return;
 			markers.push({ zone, coordinates: coords });
 		});
@@ -195,12 +196,13 @@ export default function Maps() {
 
 	const selectedZoneCenter = useMemo(() => {
 		if (!selectedZoneId) return undefined;
+		const fallbackKey = selectedZone?.name
+			? toZoneId(selectedZone.name)
+			: undefined;
 		return (
 			selectedZone?.coordinates ||
 			zoneCentroids.get(selectedZoneId) ||
-			(selectedZone?.name
-				? zoneCentroids.get(toZoneId(selectedZone.name))
-				: undefined)
+			(fallbackKey ? zoneCentroids.get(fallbackKey) : undefined)
 		);
 	}, [selectedZoneId, selectedZone, zoneCentroids]);
 
