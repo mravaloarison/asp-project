@@ -1,3 +1,5 @@
+import Maps from "@/components/maps";
+
 export default function ZonePage() {
-	return null;
+	return <Maps />;
 }

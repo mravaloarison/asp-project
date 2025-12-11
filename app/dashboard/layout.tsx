@@ -7,6 +7,7 @@ import { auth } from "../firebase";
 import { Flex, Card, Grid } from "@radix-ui/themes";
 import DashboardHeader from "@/components/dashboard-header";
 import DashboardSidebar from "@/components/dashboard-sidebar";
+import { DashboardSelectionProvider } from "@/hooks/dashboard-selection-context";
 
 export default function DashboardLayout({
 	children,
@@ -55,37 +56,47 @@ export default function DashboardLayout({
 	}
 
 	return (
-		<Flex
-			direction="column"
-			style={{
-				width: "100vw",
-				height: "100vh",
-				background: "var(--gray-a2)",
-			}}
-		>
-			<DashboardHeader user={user} logout={logout} pathname={pathname} />
+		<DashboardSelectionProvider>
+			<Flex
+				direction="column"
+				style={{
+					width: "100vw",
+					height: "100vh",
+					background: "var(--gray-a2)",
+				}}
+			>
+				<DashboardHeader
+					user={user}
+					logout={logout}
+					pathname={pathname}
+				/>
 
-			{hideDashboard ? (
-				children
-			) : (
-				<Flex
-					direction="column"
-					p="3"
-					gap="3"
-					style={{ flexGrow: 1, minHeight: 0 }}
-				>
-					<Flex style={{ flexGrow: 1, minHeight: 0 }} pb="1">
-						<Grid
-							columns={{ sm: "1", md: "3" }}
-							gap="3"
-							style={{ flexGrow: 1, minWidth: 0, height: "100%" }}
-						>
-							{mapComponent()}
-							<DashboardSidebar />
-						</Grid>
+				{hideDashboard ? (
+					children
+				) : (
+					<Flex
+						direction="column"
+						p="3"
+						gap="3"
+						style={{ flexGrow: 1, minHeight: 0 }}
+					>
+						<Flex style={{ flexGrow: 1, minHeight: 0 }} pb="1">
+							<Grid
+								columns={{ sm: "1", md: "3" }}
+								gap="3"
+								style={{
+									flexGrow: 1,
+									minWidth: 0,
+									height: "100%",
+								}}
+							>
+								{mapComponent()}
+								<DashboardSidebar />
+							</Grid>
+						</Flex>
 					</Flex>
-				</Flex>
-			)}
-		</Flex>
+				)}
+			</Flex>
+		</DashboardSelectionProvider>
 	);
 }

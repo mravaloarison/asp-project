@@ -1,7 +1,5 @@
-export default function ZoneUserPage({
-	params,
-}: {
-	params: { zoneId: string; userId: string };
-}) {
-	return null;
+import Maps from "@/components/maps";
+
+export default function ZoneUserPage() {
+	return <Maps />;
 }

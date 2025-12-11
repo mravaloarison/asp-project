@@ -16,6 +16,7 @@ import { useRouter } from "next/navigation";
 import UserCard from "@/components/dashboard-user-card";
 import ZoneCard from "@/components/dashboard-zone-card";
 import { UserDocument, ZoneDocument } from "@/app/firestore";
+import { useDashboardSelection } from "@/hooks/dashboard-selection-context";
 
 interface DashboardBodyContentProps {
 	viewState: string;
@@ -42,6 +43,7 @@ export default function DashboardBodyContent({
 	navigateToUserFromZone,
 }: DashboardBodyContentProps) {
 	const router = useRouter();
+	const { setFocusedLocationId } = useDashboardSelection();
 
 	const getUserLocationCount = (uid: string) => {
 		return zones.filter((z) => z.assignedUserIds?.includes(uid)).length;
@@ -217,9 +219,9 @@ export default function DashboardBodyContent({
 									<Card
 										key={location.id}
 										className="user-card-hover-effect"
-										onClick={() => {
-											console.log("Update map");
-										}}
+										onClick={() =>
+											setFocusedLocationId(location.id)
+										}
 									>
 										<Flex direction="column" gap="2">
 											<Flex

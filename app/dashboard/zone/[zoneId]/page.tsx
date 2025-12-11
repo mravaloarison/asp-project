@@ -1,3 +1,5 @@
-export default function ZonePage({ params }: { params: { zoneId: string } }) {
-	return null;
+import Maps from "@/components/maps";
+
+export default function ZonePage() {
+	return <Maps />;
 }

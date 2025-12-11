@@ -9,6 +9,7 @@ import DashboardBodyContent from "./dashboard/dashboard-body-content";
 import DashboardHeaderContent from "./dashboard/dahsboard-header-content";
 import { getAllUsers, getAllZones } from "@/app/firestore-fetch";
 import { UserDocument, ZoneDocument } from "@/app/firestore";
+import { useDashboardSelection } from "@/hooks/dashboard-selection-context";
 
 const getPathSegments = (pathname: string) =>
 	pathname.split("/").filter((s) => s);
@@ -16,6 +17,7 @@ const getPathSegments = (pathname: string) =>
 export default function DashboardSidebar() {
 	const router = useRouter();
 	const pathname = usePathname();
+	const { setFocusedLocationId } = useDashboardSelection();
 
 	const [users, setUsers] = useState<UserDocument[]>([]);
 	const [zones, setZones] = useState<ZoneDocument[]>([]);
@@ -147,6 +149,16 @@ export default function DashboardSidebar() {
 	};
 
 	const motionKey = segments.join("-") + currentSegment;
+
+	useEffect(() => {
+		if (
+			VIEW_STATE === "USER_READ_ONLY" ||
+			VIEW_STATE === "ZONE_USER_READ_ONLY"
+		) {
+			return;
+		}
+		setFocusedLocationId(null);
+	}, [VIEW_STATE, setFocusedLocationId]);
 
 	return (
 		<Card

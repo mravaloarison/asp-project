@@ -1,3 +1,5 @@
-export default function UserPage({ params }: { params: { userId: string } }) {
-	return null;
+import Maps from "@/components/maps";
+
+export default function UserPage() {
+	return <Maps />;
 }
