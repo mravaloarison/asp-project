@@ -27,6 +27,8 @@ export interface LocationDocument {
   id: string;
   userId: string;
   name: string;
+  zone?: string;
+  address?: string;
   description?: string;
   coordinates: {
     lat: number;
