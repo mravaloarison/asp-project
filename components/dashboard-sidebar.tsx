@@ -7,8 +7,8 @@ import { useRouter, usePathname } from "next/navigation";
 import DashboardViewHeader from "./dashboard/dahsboard-view-header";
 import DashboardBodyContent from "./dashboard/dashboard-body-content";
 import DashboardHeaderContent from "./dashboard/dahsboard-header-content";
-import { getAllUsers, getAllZones } from "@/app/firestore-fetch";
-import { UserDocument, ZoneDocument } from "@/app/firestore";
+import { getAllUsers, getAllZones, getAllLocations } from "@/app/firestore-fetch";
+import { UserDocument, ZoneDocument, LocationDocument } from "@/app/firestore";
 import { useDashboardSelection } from "@/hooks/dashboard-selection-context";
 
 const getPathSegments = (pathname: string) =>
@@ -21,15 +21,17 @@ export default function DashboardSidebar() {
 
 	const [users, setUsers] = useState<UserDocument[]>([]);
 	const [zones, setZones] = useState<ZoneDocument[]>([]);
+	const [locations, setLocations] = useState<LocationDocument[]>([]);
 	const [loading, setLoading] = useState(true);
 	const [search, setSearch] = useState("");
 
 	useEffect(() => {
 		async function loadData() {
 			try {
-				const [uRes, zRes] = await Promise.allSettled([
+				const [uRes, zRes, lRes] = await Promise.allSettled([
 					getAllUsers(),
 					getAllZones(),
+					getAllLocations(),
 				]);
 
 				if (uRes.status === "fulfilled") setUsers(uRes.value);
@@ -37,6 +39,9 @@ export default function DashboardSidebar() {
 
 				if (zRes.status === "fulfilled") setZones(zRes.value);
 				else console.error("Zones fetch failed", zRes.reason);
+
+				if (lRes.status === "fulfilled") setLocations(lRes.value);
+				else console.error("Locations fetch failed", lRes.reason);
 
 			} catch (e) {
 				console.error("Critical fetch error", e);
@@ -241,6 +246,7 @@ export default function DashboardSidebar() {
 								selectedUser={selectedUser}
 								users={filteredUsers}
 								zones={filteredZones}
+								locations={locations}
 								navigateToZone={navigateToZone}
 								navigateToUserFromList={navigateToUserFromList}
 								navigateToUserFromZone={navigateToUserFromZone}

@@ -15,7 +15,7 @@ import { PersonIcon, BackpackIcon } from "@radix-ui/react-icons";
 import { useRouter } from "next/navigation";
 import UserCard from "@/components/dashboard-user-card";
 import ZoneCard from "@/components/dashboard-zone-card";
-import { UserDocument, ZoneDocument } from "@/app/firestore";
+import { UserDocument, ZoneDocument, LocationDocument } from "@/app/firestore";
 import { useDashboardSelection } from "@/hooks/dashboard-selection-context";
 
 interface DashboardBodyContentProps {
@@ -26,6 +26,7 @@ interface DashboardBodyContentProps {
 	selectedUser: UserDocument | undefined;
 	users: UserDocument[];
 	zones: ZoneDocument[];
+	locations: LocationDocument[];
 	navigateToZone: (id: string) => void;
 	navigateToUserFromList: (id: string) => void;
 	navigateToUserFromZone: (zoneId: string, userId: string) => void;
@@ -38,6 +39,7 @@ export default function DashboardBodyContent({
 	selectedUser,
 	users,
 	zones,
+	locations,
 	navigateToZone,
 	navigateToUserFromList,
 	navigateToUserFromZone,
@@ -46,11 +48,11 @@ export default function DashboardBodyContent({
 	const { setFocusedLocationId } = useDashboardSelection();
 
 	const getUserLocationCount = (uid: string) => {
-		return zones.filter((z) => z.assignedUserIds?.includes(uid)).length;
+		return locations.filter((loc) => loc.userId === uid).length;
 	};
 
 	const getUserLocations = (uid: string) => {
-		return zones.filter((z) => z.assignedUserIds?.includes(uid));
+		return locations.filter((loc) => loc.userId === uid);
 	};
 
 	switch (viewState) {

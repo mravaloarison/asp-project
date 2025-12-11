@@ -3,9 +3,22 @@
 import { useEffect, useMemo, useState } from "react";
 import { Box, Flex, Heading, Text, Badge } from "@radix-ui/themes";
 import { usePathname, useRouter } from "next/navigation";
-import { GoogleMap, InfoWindowF, MarkerF, useJsApiLoader } from "@react-google-maps/api";
-import { getAllUsers, getAllZones } from "@/app/firestore-fetch";
-import { UserDocument, ZoneDocument } from "@/app/firestore";
+import {
+	GoogleMap,
+	InfoWindowF,
+	MarkerF,
+	useJsApiLoader,
+} from "@react-google-maps/api";
+import {
+	getAllUsers,
+	getAllZones,
+	getAllLocations,
+} from "@/app/firestore-fetch";
+import {
+	UserDocument,
+	ZoneDocument,
+	LocationDocument,
+} from "@/app/firestore";
 import { useDashboardSelection } from "@/hooks/dashboard-selection-context";
 
 const DEFAULT_CENTER = { lat: -18.766947, lng: 46.869107 };
@@ -27,6 +40,9 @@ const mapOptions: google.maps.MapOptions = {
 
 const getSegments = (pathname: string) => pathname.split("/").filter(Boolean);
 
+const toZoneId = (value?: string) =>
+	value?.toLowerCase().replace(/\s+/g, "-") || undefined;
+
 export default function Maps() {
 	const pathname = usePathname();
 	const router = useRouter();
@@ -34,6 +50,7 @@ export default function Maps() {
 	const isZoneView = segments[1] === "zone";
 	const [zones, setZones] = useState<ZoneDocument[]>([]);
 	const [users, setUsers] = useState<UserDocument[]>([]);
+	const [locations, setLocations] = useState<LocationDocument[]>([]);
 	const [loadingData, setLoadingData] = useState(true);
 	const [fetchError, setFetchError] = useState<string | null>(null);
 	const { focusedLocationId, setFocusedLocationId } =
@@ -50,15 +67,17 @@ export default function Maps() {
 		async function loadData() {
 			setLoadingData(true);
 			setFetchError(null);
-				try {
-					const [zonesRes, usersRes] = await Promise.all([
-						getAllZones(),
-						getAllUsers(),
-					]);
-					if (!ignore) {
-						setZones(zonesRes);
-						setUsers(usersRes);
-					}
+			try {
+				const [zonesRes, usersRes, locationsRes] = await Promise.all([
+					getAllZones(),
+					getAllUsers(),
+					getAllLocations(),
+				]);
+				if (!ignore) {
+					setZones(zonesRes);
+					setUsers(usersRes);
+					setLocations(locationsRes);
+				}
 			} catch (error) {
 				console.error("Failed to load map data", error);
 				if (!ignore) {
@@ -89,75 +108,68 @@ export default function Maps() {
 		? zones.find((z) => z.id === selectedZoneId)
 		: undefined;
 	const selectedUser = users.find((u) => u.uid === selectedUserId);
-	const selectedUserName = selectedUser?.displayName || "this agent";
 
-	const zonePins = useMemo(
-		() => zones.filter((z) => z.coordinates),
-		[zones]
+	const userMap = useMemo(() => {
+		const map = new Map<string, UserDocument>();
+		users.forEach((u) => map.set(u.uid, u));
+		return map;
+	}, [users]);
+
+	const locationsWithCoords = useMemo(
+		() => locations.filter((loc) => loc.coordinates),
+		[locations]
+	);
+
+	const visibleLocations = useMemo(() => {
+		let list = locationsWithCoords;
+		if (selectedZoneId) {
+			list = list.filter(
+				(loc) => toZoneId(loc.zone) === selectedZoneId
+			);
+		}
+		if (selectedUserId) {
+			list = list.filter((loc) => loc.userId === selectedUserId);
+		}
+		if (isZoneView && !selectedZoneId) {
+			return [];
+		}
+		return list;
+	}, [locationsWithCoords, selectedZoneId, selectedUserId, isZoneView]);
+
+	const activeLocation = useMemo(
+		() => locationsWithCoords.find((loc) => loc.id === focusedLocationId),
+		[locationsWithCoords, focusedLocationId]
 	);
 
 	const zoneMarkers = useMemo(() => {
 		if (!isZoneView) return [];
 		if (selectedZoneId) {
-			const target = zonePins.find((z) => z.id === selectedZoneId);
-			return target ? [target] : [];
+			return selectedZone?.coordinates ? [selectedZone] : [];
 		}
-		return zonePins;
-	}, [zonePins, isZoneView, selectedZoneId]);
-
-	const userPins = useMemo(() => {
-		return zonePins.flatMap((zone) => {
-			if (!zone.assignedUserIds?.length || !zone.coordinates) return [];
-			return zone.assignedUserIds.map((uid) => {
-				const user = users.find((u) => u.uid === uid);
-				return {
-					id: `${zone.id}-${uid}`,
-					zoneId: zone.id,
-					userId: uid,
-					userName: user?.displayName || "Unknown",
-					position: zone.coordinates!,
-					zoneName: zone.name,
-				};
-			});
-		});
-	}, [zonePins, users]);
-
-	const visibleUserPins = useMemo(() => {
-		let pins = userPins;
-		if (selectedZoneId) {
-			pins = pins.filter((pin) => pin.zoneId === selectedZoneId);
-		}
-		if (selectedUserId) {
-			pins = pins.filter((pin) => pin.userId === selectedUserId);
-		}
-		if (isZoneView && !selectedZoneId) {
-			return [];
-		}
-		return pins;
-	}, [userPins, selectedZoneId, selectedUserId, isZoneView]);
-
-	const activeZoneFocus = useMemo(() => {
-		if (focusedLocationId) {
-			return zones.find((z) => z.id === focusedLocationId);
-		}
-		return selectedZone;
-	}, [zones, focusedLocationId, selectedZone]);
+		return zones.filter((z) => z.coordinates);
+	}, [isZoneView, selectedZoneId, selectedZone, zones]);
 
 	const mapCenter = useMemo(() => {
-		if (activeZoneFocus?.coordinates) {
-			return activeZoneFocus.coordinates;
+		if (activeLocation?.coordinates) {
+			return activeLocation.coordinates;
 		}
-		if (visibleUserPins.length) {
-			const total = visibleUserPins.reduce(
-				(acc, pin) => ({
-					lat: acc.lat + pin.position.lat,
-					lng: acc.lng + pin.position.lng,
+		if (selectedZone?.coordinates) {
+			return selectedZone.coordinates;
+		}
+		const target = visibleLocations.length
+			? visibleLocations
+			: locationsWithCoords;
+		if (target.length) {
+			const total = target.reduce(
+				(acc, loc) => ({
+					lat: acc.lat + (loc.coordinates?.lat || 0),
+					lng: acc.lng + (loc.coordinates?.lng || 0),
 				}),
 				{ lat: 0, lng: 0 }
 			);
 			return {
-				lat: total.lat / visibleUserPins.length,
-				lng: total.lng / visibleUserPins.length,
+				lat: total.lat / target.length,
+				lng: total.lng / target.length,
 			};
 		}
 		if (zoneMarkers.length) {
@@ -177,35 +189,40 @@ export default function Maps() {
 			};
 		}
 		return DEFAULT_CENTER;
-	}, [activeZoneFocus, visibleUserPins, zoneMarkers]);
+	}, [
+		activeLocation,
+		selectedZone,
+		visibleLocations,
+		locationsWithCoords,
+		zoneMarkers,
+	]);
 
-	const mapZoom =
-		activeZoneFocus || selectedUserId
-			? 11
-			: selectedZoneId
-			? 7
-			: DEFAULT_ZOOM;
+	const mapZoom = activeLocation
+		? 13
+		: selectedZoneId
+		? 8
+		: DEFAULT_ZOOM;
 
 	const mapDescription = useMemo(() => {
 		if (selectedZone && selectedUser) {
-			return `Viewing ${selectedUserName} assigned to ${selectedZone.name}`;
+			return `Viewing ${selectedUser.displayName}'s locations inside ${selectedZone.name}`;
 		}
 		if (selectedZone) {
-			return `Showing agents assigned to ${selectedZone.name}`;
+			return `Showing all agent locations for ${selectedZone.name}`;
 		}
 		if (selectedUser) {
-			return `Viewing ${selectedUserName}'s active zones`;
+			return `Viewing ${selectedUser.displayName}'s assigned locations`;
 		}
 		if (isZoneView) {
 			return "Select a zone pin to drill into its agents";
 		}
-		return "Overview of all field agents";
-	}, [selectedZone, selectedUser, selectedUserName, isZoneView]);
+		return "Overview of all active agents";
+	}, [selectedZone, selectedUser, isZoneView]);
 
 	const mapTitle = isZoneView ? "Maps by Zones" : "Maps by Users";
 
-	const handleMarkerClick = (zoneId: string) => {
-		setFocusedLocationId(zoneId);
+	const handleLocationMarkerClick = (locationId: string) => {
+		setFocusedLocationId(locationId);
 	};
 
 	const handleMapClick = () => {
@@ -213,15 +230,9 @@ export default function Maps() {
 	};
 
 	const handleZoneMarkerClick = (zoneId: string) => {
-		setFocusedLocationId(zoneId);
+		setFocusedLocationId(null);
 		router.push(`/dashboard/zone/${zoneId}`);
 	};
-
-	useEffect(() => {
-		if (isZoneView && !selectedZoneId) {
-			setFocusedLocationId(null);
-		}
-	}, [isZoneView, selectedZoneId, setFocusedLocationId]);
 
 	const renderMap = () => {
 		if (loadError) {
@@ -238,13 +249,14 @@ export default function Maps() {
 				</Text>
 			);
 		}
-			const shouldRenderLocations = visibleUserPins.length > 0;
-			const shouldRenderZones = zoneMarkers.length > 0;
 
-			if (!shouldRenderLocations && !shouldRenderZones) {
-				return (
-					<Text color="gray" size="2">
-						{selectedZone
+		const hasLocationPins = visibleLocations.length > 0;
+		const hasZonePins = zoneMarkers.length > 0;
+
+		if (!hasLocationPins && !hasZonePins) {
+			return (
+				<Text color="gray" size="2">
+					{selectedZone
 						? "No agent locations found for this zone."
 						: selectedUser
 						? "This user has no mapped locations yet."
@@ -253,19 +265,19 @@ export default function Maps() {
 			);
 		}
 
-			return (
-				<GoogleMap
-					mapContainerStyle={{ width: "100%", height: "100%" }}
+		return (
+			<GoogleMap
+				mapContainerStyle={{ width: "100%", height: "100%" }}
 				zoom={mapZoom}
 				center={mapCenter}
 				options={mapOptions}
 				onClick={handleMapClick}
 			>
-					{shouldRenderZones &&
-						zoneMarkers.map((zone) =>
-							zone.coordinates ? (
-								<MarkerF
-									key={`zone-${zone.id}`}
+				{hasZonePins &&
+					zoneMarkers.map((zone) =>
+						zone.coordinates ? (
+							<MarkerF
+								key={`zone-${zone.id}`}
 								position={zone.coordinates}
 								label={{
 									text: zone.name,
@@ -283,84 +295,79 @@ export default function Maps() {
 											? "#7c3aed"
 											: "#14b8a6",
 									fillOpacity: 0.95,
-										strokeWeight: 2,
-										strokeColor: "white",
-									}}
-									onClick={() => handleZoneMarkerClick(zone.id)}
-								/>
-							) : null
-						)}
-					{shouldRenderLocations &&
-						visibleUserPins.map((pin) => (
+									strokeWeight: 2,
+									strokeColor: "white",
+								}}
+								onClick={() => handleZoneMarkerClick(zone.id)}
+							/>
+						) : null
+					)}
+				{hasLocationPins &&
+					visibleLocations.map((loc) =>
+						loc.coordinates ? (
 							<MarkerF
-								key={pin.id}
-								position={pin.position}
+								key={loc.id}
+								position={loc.coordinates}
 								label={{
-									text: pin.userName,
+									text:
+										userMap.get(loc.userId)?.displayName ||
+										"Unknown agent",
 									className:
 										"dashboard-map-marker-label" +
-										(activeZoneFocus?.id === pin.zoneId
+										(activeLocation?.id === loc.id
 											? " dashboard-map-marker-label--active"
 											: ""),
 								}}
 								icon={{
 									path: google.maps.SymbolPath.CIRCLE,
-									scale: activeZoneFocus?.id === pin.zoneId ? 10 : 7,
-									fillColor: activeZoneFocus?.id === pin.zoneId
+									scale: activeLocation?.id === loc.id ? 10 : 7,
+									fillColor: activeLocation?.id === loc.id
 										? "#7c3aed"
-										: selectedUserId && pin.userId === selectedUserId
+										: selectedUserId && loc.userId === selectedUserId
 										? "#1d4ed8"
 										: "#111827",
 									fillOpacity: 0.9,
 									strokeWeight: 2,
 									strokeColor: "white",
 								}}
-								onClick={() => handleMarkerClick(pin.zoneId)}
+								onClick={() => handleLocationMarkerClick(loc.id)}
 							/>
-						))}
-					{activeZoneFocus?.coordinates && (
-						<InfoWindowF
-							position={activeZoneFocus.coordinates}
-							onCloseClick={() => setFocusedLocationId(null)}
-						>
-							<Flex direction="column" gap="1">
-								<Text weight="bold">{activeZoneFocus.name}</Text>
-								<Text size="2" color="gray">
-									{activeZoneFocus.coordinates.lat.toFixed(4)},
-									{activeZoneFocus.coordinates.lng.toFixed(4)}
-								</Text>
-								{activeZoneFocus.description && (
-									<Text size="2">{activeZoneFocus.description}</Text>
-								)}
-								{activeZoneFocus.assignedUserIds?.length ? (
-									<Flex gap="1" wrap="wrap">
-										{activeZoneFocus.assignedUserIds.map((uid) => {
-											const user = users.find((u) => u.uid === uid);
-											return (
-												<Badge key={uid} color="indigo" size="1">
-													{user?.displayName || "Unassigned"}
-												</Badge>
-											);
-										})}
-									</Flex>
-								) : (
-									<Text size="2" color="gray">
-										No agents assigned
-									</Text>
-								)}
-							</Flex>
-						</InfoWindowF>
+						) : null
 					)}
+				{activeLocation?.coordinates && (
+					<InfoWindowF
+						position={activeLocation.coordinates}
+						onCloseClick={() => setFocusedLocationId(null)}
+					>
+						<Flex direction="column" gap="1">
+							<Text weight="bold">
+								{userMap.get(activeLocation.userId)?.displayName ||
+									"Unknown agent"}
+							</Text>
+							<Text size="2">{activeLocation.name}</Text>
+							<Text size="2" color="gray">
+								{activeLocation.coordinates.lat.toFixed(4)},
+								{activeLocation.coordinates.lng.toFixed(4)}
+							</Text>
+							{activeLocation.description && (
+								<Text size="2">{activeLocation.description}</Text>
+							)}
+							<Text size="2" color="gray">
+								Zone: {activeLocation.zone || "Uncategorized"}
+							</Text>
+						</Flex>
+					</InfoWindowF>
+				)}
 			</GoogleMap>
 		);
 	};
 
-		return (
-			<Flex direction="column" gap="3" style={{ height: "100%" }}>
-				<Flex direction="column" gap="1">
-					<Heading size="4">{mapTitle}</Heading>
-					<Text size="2">{mapDescription}</Text>
-				</Flex>
+	return (
+		<Flex direction="column" gap="3" style={{ height: "100%" }}>
+			<Flex direction="column" gap="1">
+				<Heading size="4">{mapTitle}</Heading>
+				<Text size="2">{mapDescription}</Text>
+			</Flex>
 
 			<Box
 				style={{
