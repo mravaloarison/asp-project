@@ -2,13 +2,14 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Box, Flex, Heading, Text, Badge } from "@radix-ui/themes";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { GoogleMap, InfoWindowF, MarkerF, useJsApiLoader } from "@react-google-maps/api";
 import { getAllUsers, getAllZones, getAllLocations } from "@/app/firestore-fetch";
 import { UserDocument, ZoneDocument, LocationDocument } from "@/app/firestore";
 import { useDashboardSelection } from "@/hooks/dashboard-selection-context";
 
-const DEFAULT_CENTER = { lat: 39.8097343, lng: -98.5556199 }; // Geographic center of continental US
+const DEFAULT_CENTER = { lat: -18.766947, lng: 46.869107 };
+const DEFAULT_ZOOM = 5;
 
 const mapOptions: google.maps.MapOptions = {
 	mapTypeControl: false,
@@ -28,7 +29,9 @@ const getSegments = (pathname: string) => pathname.split("/").filter(Boolean);
 
 export default function Maps() {
 	const pathname = usePathname();
+	const router = useRouter();
 	const segments = getSegments(pathname);
+	const isZoneView = segments[1] === "zone";
 	const [zones, setZones] = useState<ZoneDocument[]>([]);
 	const [users, setUsers] = useState<UserDocument[]>([]);
 	const [locations, setLocations] = useState<LocationDocument[]>([]);
@@ -96,18 +99,42 @@ export default function Maps() {
 		[locations]
 	);
 
+	const zonePins = useMemo(
+		() => zones.filter((z) => z.coordinates),
+		[zones]
+	);
+
+	const visibleZonePins = useMemo(() => {
+		if (!isZoneView) return [];
+		if (selectedZoneId) {
+			const target = zonePins.find((z) => z.id === selectedZoneId);
+			return target ? [target] : [];
+		}
+		return zonePins;
+	}, [zonePins, isZoneView, selectedZoneId]);
+
 	const visibleLocations = useMemo(() => {
 		let list = locationsWithCoords;
-		if (selectedZone?.assignedUserIds?.length) {
-			list = list.filter((loc) =>
-				selectedZone.assignedUserIds.includes(loc.userId)
-			);
+		if (selectedZone) {
+			const allowedUsers = selectedZone.assignedUserIds || [];
+			list = allowedUsers.length
+				? list.filter((loc) => allowedUsers.includes(loc.userId))
+				: [];
 		}
 		if (selectedUserId) {
 			list = list.filter((loc) => loc.userId === selectedUserId);
 		}
+		if (isZoneView && !selectedZoneId) {
+			return [];
+		}
 		return list;
-	}, [locationsWithCoords, selectedZone, selectedUserId]);
+	}, [
+		locationsWithCoords,
+		selectedZone,
+		selectedUserId,
+		isZoneView,
+		selectedZoneId,
+	]);
 
 	const activeLocation = useMemo(
 		() => locations.find((loc) => loc.id === focusedLocationId),
@@ -118,43 +145,81 @@ export default function Maps() {
 		if (activeLocation?.coordinates) {
 			return activeLocation.coordinates;
 		}
-		const target = visibleLocations.length
+		if (selectedZone?.coordinates) {
+			return selectedZone.coordinates;
+		}
+		const targetLocations = visibleLocations.length
 			? visibleLocations
 			: locationsWithCoords;
-		if (target.length === 0) {
-			return DEFAULT_CENTER;
+		if (targetLocations.length) {
+			const total = targetLocations.reduce(
+				(acc, loc) => {
+					if (!loc.coordinates) return acc;
+					return {
+						lat: acc.lat + loc.coordinates.lat,
+						lng: acc.lng + loc.coordinates.lng,
+					};
+				},
+				{ lat: 0, lng: 0 }
+			);
+			return {
+				lat: total.lat / targetLocations.length,
+				lng: total.lng / targetLocations.length,
+			};
 		}
-		const avg = target.reduce(
-			(acc, loc) => {
-				if (!loc.coordinates) return acc;
-				return {
-					lat: acc.lat + loc.coordinates.lat,
-					lng: acc.lng + loc.coordinates.lng,
-				};
-			},
-			{ lat: 0, lng: 0 }
-		);
-		return {
-			lat: avg.lat / target.length,
-			lng: avg.lng / target.length,
-		};
-	}, [activeLocation, visibleLocations, locationsWithCoords]);
+		if (visibleZonePins.length) {
+			const sum = visibleZonePins.reduce(
+				(acc, zone) => {
+					if (!zone.coordinates) return acc;
+					return {
+						lat: acc.lat + zone.coordinates.lat,
+						lng: acc.lng + zone.coordinates.lng,
+					};
+				},
+				{ lat: 0, lng: 0 }
+			);
+			return {
+				lat: sum.lat / visibleZonePins.length,
+				lng: sum.lng / visibleZonePins.length,
+			};
+		}
+		return DEFAULT_CENTER;
+	}, [
+		activeLocation,
+		selectedZone,
+		visibleLocations,
+		locationsWithCoords,
+		visibleZonePins,
+	]);
 
 	const mapZoom = activeLocation
 		? 11
 		: selectedUserId || selectedZoneId
 		? 6
-		: 4;
+		: DEFAULT_ZOOM;
 
 	const mapDescription = useMemo(() => {
+		if (selectedZone && selectedUser) {
+			return `Viewing ${selectedUserName} in ${selectedZone.name}`;
+		}
 		if (selectedUser) {
 			return `Viewing ${selectedUserName}'s assigned locations`;
 		}
 		if (selectedZone) {
-			return `Showing users assigned to ${selectedZone.name}`;
+			return `Showing agents assigned to ${selectedZone.name}`;
 		}
-		return "Active zones overview";
-	}, [selectedUser, selectedZone]);
+		if (isZoneView) {
+			return "Select a zone to view its agents";
+		}
+		return "Active locations overview";
+	}, [selectedZone, selectedUser, selectedUserName, isZoneView]);
+
+	const statsText =
+		isZoneView && !selectedZoneId
+			? `Showing ${visibleZonePins.length} of ${zonePins.length} zones`
+			: `Showing ${
+					visibleLocations.length || locationsWithCoords.length
+				} of ${locationsWithCoords.length} mapped locations`;
 
 	const handleMarkerClick = (locationId: string) => {
 		setFocusedLocationId(locationId);
@@ -162,6 +227,11 @@ export default function Maps() {
 
 	const handleMapClick = () => {
 		setFocusedLocationId(null);
+	};
+
+	const handleZoneMarkerClick = (zoneId: string) => {
+		setFocusedLocationId(null);
+		router.push(`/dashboard/zone/${zoneId}`);
 	};
 
 	useEffect(() => {
@@ -189,19 +259,21 @@ export default function Maps() {
 				</Text>
 			);
 		}
-		if (!visibleLocations.length && !activeLocation) {
+		const locationPins = visibleLocations;
+		const shouldRenderLocations = locationPins.length > 0;
+		const shouldRenderZones = visibleZonePins.length > 0;
+
+		if (!shouldRenderLocations && !shouldRenderZones) {
 			return (
 				<Text color="gray" size="2">
-					{selectedUser
+					{selectedZone
+						? "No agent locations found for this zone."
+						: selectedUser
 						? "This user has no mapped locations yet."
 						: "No locations available."}
 				</Text>
 			);
 		}
-
-		const pins = visibleLocations.length
-			? visibleLocations
-			: locationsWithCoords;
 
 		return (
 			<GoogleMap
@@ -211,10 +283,40 @@ export default function Maps() {
 				options={mapOptions}
 				onClick={handleMapClick}
 			>
-				{pins.map((loc) =>
-					loc.coordinates ? (
-						<MarkerF
-							key={loc.id}
+				{shouldRenderZones &&
+					visibleZonePins.map((zone) =>
+						zone.coordinates ? (
+							<MarkerF
+								key={`zone-${zone.id}`}
+								position={zone.coordinates}
+								label={{
+									text: zone.name,
+									className:
+										"dashboard-map-marker-label" +
+										(zone.id === selectedZoneId
+											? " dashboard-map-marker-label--active"
+											: ""),
+								}}
+								icon={{
+									path: google.maps.SymbolPath.CIRCLE,
+									scale: zone.id === selectedZoneId ? 10 : 8,
+									fillColor:
+										zone.id === selectedZoneId
+											? "#7c3aed"
+											: "#14b8a6",
+									fillOpacity: 0.95,
+									strokeWeight: 2,
+									strokeColor: "white",
+								}}
+								onClick={() => handleZoneMarkerClick(zone.id)}
+							/>
+						) : null
+					)}
+				{shouldRenderLocations &&
+					locationPins.map((loc) =>
+						loc.coordinates ? (
+							<MarkerF
+								key={loc.id}
 							position={loc.coordinates}
 							label={{
 								text: loc.name,
@@ -272,8 +374,7 @@ export default function Maps() {
 			<Flex direction="column" gap="1">
 				<Heading size="4">Maps</Heading>
 				<Text size="2" color="gray">
-					Showing {visibleLocations.length || locationsWithCoords.length} of{" "}
-					{locationsWithCoords.length} mapped locations
+					{statsText}
 				</Text>
 				<Text size="2">{mapDescription}</Text>
 			</Flex>
