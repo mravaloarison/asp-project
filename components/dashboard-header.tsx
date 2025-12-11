@@ -48,7 +48,7 @@ export default function DashboardHeader({
 							radius="full"
 						/>
 					)}
-					{profileLinkProps.icon}{" "}
+					{profileLinkProps.icon}
 					<Text>{profileLinkProps.label}</Text>
 				</Flex>
 			</Link>

@@ -273,8 +273,13 @@ export default function Maps() {
 
 	const mapTitle = isZoneView ? "Maps by Zones" : "Maps by Users";
 
-	const handleLocationMarkerClick = (locationId: string) => {
-		setFocusedLocationId(locationId);
+	const handleLocationMarkerClick = (location: LocationDocument) => {
+		setFocusedLocationId(location.id);
+		if (selectedZoneId) {
+			router.push(`/dashboard/zone/${selectedZoneId}/user/${location.userId}`);
+		} else {
+			router.push(`/dashboard/user/${location.userId}`);
+		}
 	};
 
 	const handleMapClick = () => {
@@ -398,7 +403,7 @@ export default function Maps() {
 									strokeWeight: 2,
 									strokeColor: "white",
 								}}
-								onClick={() => handleLocationMarkerClick(loc.id)}
+								onClick={() => handleLocationMarkerClick(loc)}
 							/>
 						) : null
 					)}

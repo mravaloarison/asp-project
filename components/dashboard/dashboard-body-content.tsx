@@ -238,13 +238,11 @@ export default function DashboardBodyContent({
 														size="1"
 														color="violet"
 													>
-														{location.coordinates.lat.toFixed(
+														{`${location.coordinates.lat.toFixed(
 															4
-														)}
-														,{" "}
-														{location.coordinates.lng.toFixed(
+														)}, ${location.coordinates.lng.toFixed(
 															4
-														)}
+														)}`}
 													</Badge>
 												)}
 											</Flex>

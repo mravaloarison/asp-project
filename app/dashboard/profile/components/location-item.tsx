@@ -154,9 +154,14 @@ export default function LocationItem({
 						<Dialog.Content maxWidth="450px">
 							<Dialog.Title>Confirm Deletion</Dialog.Title>
 							<Dialog.Description size="2" mb="4">
-								Are you sure you want to remove{" "}
-								<strong>{location.name}</strong>? This action
-								cannot be undone.
+								Are you sure you want to remove
+								<Box
+									as="span"
+									style={{ marginLeft: "0.25rem", marginRight: "0.25rem" }}
+								>
+									<strong>{location.name}</strong>
+								</Box>
+								? This action cannot be undone.
 							</Dialog.Description>
 
 							<Flex gap="3" mt="4" justify="end">
