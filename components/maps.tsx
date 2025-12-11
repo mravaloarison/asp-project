@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, Fragment } from "react";
 import { Box, Flex, Heading, Text, Badge } from "@radix-ui/themes";
 import { usePathname, useRouter } from "next/navigation";
 import {
 	GoogleMap,
 	InfoWindowF,
 	MarkerF,
+	CircleF,
 	useJsApiLoader,
 } from "@react-google-maps/api";
 import {
@@ -23,6 +24,7 @@ import { useDashboardSelection } from "@/hooks/dashboard-selection-context";
 
 const DEFAULT_CENTER = { lat: -18.766947, lng: 46.869107 };
 const DEFAULT_ZOOM = 5;
+const ZONE_RADIUS_METERS = 20000;
 
 const mapOptions: google.maps.MapOptions = {
 	mapTypeControl: false,
@@ -276,30 +278,48 @@ export default function Maps() {
 				{hasZonePins &&
 					zoneMarkers.map((zone) =>
 						zone.coordinates ? (
-							<MarkerF
-								key={`zone-${zone.id}`}
-								position={zone.coordinates}
-								label={{
-									text: zone.name,
-									className:
-										"dashboard-map-marker-label" +
-										(zone.id === selectedZoneId
-											? " dashboard-map-marker-label--active"
-											: ""),
-								}}
-								icon={{
-									path: google.maps.SymbolPath.CIRCLE,
-									scale: zone.id === selectedZoneId ? 10 : 8,
-									fillColor:
-										zone.id === selectedZoneId
-											? "#7c3aed"
-											: "#14b8a6",
-									fillOpacity: 0.95,
-									strokeWeight: 2,
-									strokeColor: "white",
-								}}
-								onClick={() => handleZoneMarkerClick(zone.id)}
-							/>
+							<Fragment key={`zone-wrap-${zone.id}`}>
+								<MarkerF
+									key={`zone-${zone.id}`}
+									position={zone.coordinates}
+									label={{
+										text: zone.name,
+										className:
+											"dashboard-map-marker-label" +
+											(zone.id === selectedZoneId
+												? " dashboard-map-marker-label--active"
+												: ""),
+									}}
+									icon={{
+										path: google.maps.SymbolPath.CIRCLE,
+										scale: zone.id === selectedZoneId ? 10 : 8,
+										fillColor:
+											zone.id === selectedZoneId
+												? "#7c3aed"
+												: "#14b8a6",
+										fillOpacity: 0.95,
+										strokeWeight: 2,
+										strokeColor: "white",
+									}}
+									onClick={() => handleZoneMarkerClick(zone.id)}
+								/>
+								<CircleF
+									key={`zone-circle-${zone.id}`}
+									center={zone.coordinates}
+									radius={ZONE_RADIUS_METERS}
+									options={{
+										fillColor:
+											zone.id === selectedZoneId
+												? "rgba(124, 58, 237, 0.15)"
+												: "rgba(20, 184, 166, 0.12)",
+										strokeColor:
+											zone.id === selectedZoneId
+												? "#7c3aed"
+												: "#14b8a6",
+										strokeWeight: 1.5,
+									}}
+								/>
+							</Fragment>
 						) : null
 					)}
 				{hasLocationPins &&
