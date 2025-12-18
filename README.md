@@ -1,36 +1,30 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+### Geospatial User Dashboard
+A web application built with Next.js and Firebase designed for managing user profiles, geographic service zones, and specific location data with real-time synchronization and interactive mapping.
 
-## Getting Started
+### Key Features
+- **Authentication and Identity Management:** Secure user lifecycle management including sign-in, sign-up, and full account deletion capabilities using Firebase Auth.
 
-First, run the development server:
+- **Geospatial Visualization:** Interactive map integration using the Google Maps API to display service zones and user-specific location markers.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+- **Real-time Data Synchronization:** Direct integration with Firestore for instant updates to user profiles, zone assignments, and location coordinates.
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+- **Hierarchical Data Management:** Management of data across three primary layers: Users, Zones (geographic regions), and Locations (specific points of interest).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- Responsive UI Components: High-performance, accessible interface built with Radix UI primitives and Tailwind CSS.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### Technology Stack
+- Framework: Next.js 16 (App Router)
+- Language: TypeScript
+- Database & Auth: Firebase 12 / Firestore
+- Mapping: @vis.gl/react-google-maps
+- UI Components: Radix UI Themes, Lucide React
+- Animations: Framer Motion
 
-## Learn More
+### Data Models
+The application utilizes three core document types in Firestore:
 
-To learn more about Next.js, take a look at the following resources:
+- `UserDocument:` Stores authentication metadata, company details, and assigned zone IDs.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- Z`oneDocument:` Defines geographic regions, including coordinates, region names, and assigned user counts.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- `LocationDocument:` Represents specific points on the map linked to a user and a zone, containing precise latitude and longitude coordinates.
